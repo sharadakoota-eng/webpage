@@ -1,0 +1,16 @@
+# This project is not a Python application and cannot be installed with pip.
+# The real dependency manifest is package.json in the project root.
+#
+# Use this file only as a quick reminder of external prerequisites.
+#
+# Required system software:
+# 1. Node.js 20+ (includes npm)
+# 2. MySQL 8+
+# 3. Git
+#
+# After installing Node.js, run:
+# npm install
+# npx prisma generate
+# npx prisma migrate dev --name initial
+# npm run prisma:seed
+# npm run dev

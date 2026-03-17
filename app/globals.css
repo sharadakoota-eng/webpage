@@ -1,0 +1,76 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(214, 164, 54, 0.14), transparent 24%),
+    radial-gradient(circle at top right, rgba(184, 196, 165, 0.16), transparent 22%),
+    linear-gradient(180deg, #fcfaf6 0%, #f8f3ea 40%, #ffffff 100%);
+  color: #09162b;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+main {
+  padding-bottom: 7rem;
+}
+
+section {
+  position: relative;
+}
+
+.premium-panel {
+  background: rgba(255, 255, 255, 0.84);
+  backdrop-filter: blur(14px);
+}
+
+.shimmer-line {
+  position: relative;
+  overflow: hidden;
+}
+
+.shimmer-line::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.24), transparent);
+  animation: shimmer 5.6s infinite;
+}
+
+.stagger-rise {
+  animation: riseIn 0.8s ease both;
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes riseIn {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (min-width: 640px) {
+  main {
+    padding-bottom: 0;
+  }
+}
