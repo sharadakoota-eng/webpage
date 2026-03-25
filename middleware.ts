@@ -1,17 +1,22 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { getToken } from "next-auth/jwt";
+import type { NextRequest } from "next/server";
 
-export default auth((req) => {
-  const session = req.auth;
+export async function middleware(req: NextRequest) {
+  const token = await getToken({
+    req,
+    secret: process.env.NEXTAUTH_SECRET,
+  });
+
   const pathname = req.nextUrl.pathname;
 
-  if (!session?.user) {
+  if (!token) {
     const loginUrl = new URL("/login", req.nextUrl.origin);
     loginUrl.searchParams.set("next", pathname);
     return NextResponse.redirect(loginUrl);
   }
 
-  const role = session.user.role;
+  const role = token.role as string | undefined;
 
   if (pathname.startsWith("/admin") && role !== "ADMIN" && role !== "SUPER_ADMIN") {
     return NextResponse.redirect(new URL("/login", req.nextUrl.origin));
@@ -26,7 +31,7 @@ export default auth((req) => {
   }
 
   return NextResponse.next();
-});
+}
 
 export const config = {
   matcher: ["/admin/:path*", "/parent/:path*", "/teacher/:path*"],
