@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useMemo, useState } from "react";
-import { getSession, signIn } from "next-auth/react";
+import { signIn } from "next-auth/react";
 import { LockKeyhole, School, ShieldCheck, Users } from "lucide-react";
 import logoImage from "@/assets/logo.png";
 import heroImage from "@/assets/contact.png";
@@ -48,6 +48,7 @@ export default function LoginPage() {
     const result = await signIn("credentials", {
       email,
       password,
+      callbackUrl: "/portal",
       redirect: false,
     });
 
@@ -57,20 +58,7 @@ export default function LoginPage() {
       return;
     }
 
-    const session = await getSession();
-    const role = session?.user?.role;
-
-    if (role === "PARENT") {
-      window.location.href = "/parent";
-      return;
-    }
-
-    if (role === "TEACHER") {
-      window.location.href = "/teacher";
-      return;
-    }
-
-    window.location.href = "/admin";
+    window.location.href = result?.url ?? "/portal";
   }
 
   return (

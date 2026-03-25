@@ -1,11 +1,49 @@
+import fs from "node:fs";
+import path from "node:path";
 import bcrypt from "bcryptjs";
 import { PrismaClient, ProgramCategory, RoleType } from "@prisma/client";
+
+function loadEnvFile(fileName: string) {
+  const filePath = path.join(process.cwd(), fileName);
+
+  if (!fs.existsSync(filePath)) {
+    return;
+  }
+
+  const fileContents = fs.readFileSync(filePath, "utf8");
+
+  for (const rawLine of fileContents.split(/\r?\n/)) {
+    const line = rawLine.trim();
+
+    if (!line || line.startsWith("#") || !line.includes("=")) {
+      continue;
+    }
+
+    const [keyPart, ...valueParts] = line.split("=");
+    const key = keyPart.trim();
+    let value = valueParts.join("=").trim();
+
+    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+      value = value.slice(1, -1);
+    }
+
+    if (!process.env[key]) {
+      process.env[key] = value;
+    }
+  }
+}
+
+loadEnvFile(".env");
+loadEnvFile(".env.local");
 
 const prisma = new PrismaClient();
 
 async function main() {
   const adminPassword = process.env.ADMIN_PASSWORD ?? "ChangeMe123!";
   const passwordHash = await bcrypt.hash(adminPassword, 10);
+  const adminEmails = Array.from(
+    new Set([process.env.ADMIN_EMAIL ?? "admin@shaaradakoota.com", "admin@shaaradakoota.com", "admin@shaaradakuuta.com"]),
+  );
 
   const permissions = [
     ["content.manage", "Manage content"],
@@ -45,17 +83,19 @@ async function main() {
   const parentRole = await prisma.role.findUniqueOrThrow({ where: { type: RoleType.PARENT } });
   const teacherRole = await prisma.role.findUniqueOrThrow({ where: { type: RoleType.TEACHER } });
 
-  await prisma.user.upsert({
-    where: { email: process.env.ADMIN_EMAIL ?? "admin@shaaradakoota.com" },
-    update: { name: "Sharada Koota Admin", passwordHash, roleId: adminRole.id },
-    create: {
-      name: "Sharada Koota Admin",
-      email: process.env.ADMIN_EMAIL ?? "admin@shaaradakoota.com",
-      passwordHash,
-      phone: "9880199221",
-      roleId: adminRole.id,
-    },
-  });
+  for (const adminEmail of adminEmails) {
+    await prisma.user.upsert({
+      where: { email: adminEmail },
+      update: { name: "Sharada Koota Admin", passwordHash, roleId: adminRole.id },
+      create: {
+        name: "Sharada Koota Admin",
+        email: adminEmail,
+        passwordHash,
+        phone: "9880199221",
+        roleId: adminRole.id,
+      },
+    });
+  }
 
   const teacherUser = await prisma.user.upsert({
     where: { email: "teacher@shaaradakoota.com" },
