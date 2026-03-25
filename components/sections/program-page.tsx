@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { ProgramContent } from "@/lib/content";
 
-export function ProgramPage({ program }: { program: ProgramContent }) {
+export function ProgramPage({ program, showCta = true }: { program: ProgramContent; showCta?: boolean }) {
   return (
     <div className="space-y-12">
       <section className="rounded-[2rem] bg-navy px-6 py-12 text-white shadow-soft sm:px-10 sm:py-16">
@@ -60,14 +60,16 @@ export function ProgramPage({ program }: { program: ProgramContent }) {
         </div>
       </section>
 
-      <section className="rounded-[2rem] bg-gradient-to-r from-gold to-peach px-6 py-10 text-ink shadow-soft sm:px-10">
-        <h2 className="font-display text-3xl">{program.ctaTitle}</h2>
-        <p className="mt-3 max-w-2xl text-base leading-7 text-ink/80">{program.ctaDescription}</p>
-        <div className="mt-6 flex flex-wrap gap-3">
-          <Button href="/contact">Book a Visit</Button>
-          <Button href="/admissions" variant="ghost">Apply for Admission</Button>
-        </div>
-      </section>
+      {showCta ? (
+        <section className="rounded-[2rem] bg-gradient-to-r from-gold to-peach px-6 py-10 text-ink shadow-soft sm:px-10">
+          <h2 className="font-display text-3xl">{program.ctaTitle}</h2>
+          <p className="mt-3 max-w-2xl text-base leading-7 text-ink/80">{program.ctaDescription}</p>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Button href="/contact">Book a Visit</Button>
+            <Button href="/admissions" variant="ghost">Apply for Admission</Button>
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }

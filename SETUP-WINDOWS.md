@@ -20,7 +20,7 @@ npm -v
 You already created:
 
 ```sql
-CREATE DATABASE shaarada_kuuta_dev;
+CREATE DATABASE shaarada_koota_dev;
 ```
 
 That is the correct local database name.
@@ -30,12 +30,12 @@ That is the correct local database name.
 Create a file named `.env.local` in the project root with content like:
 
 ```env
-DATABASE_URL="mysql://root:yourpassword@127.0.0.1:3306/shaarada_kuuta_dev"
-DIRECT_URL="mysql://root:yourpassword@127.0.0.1:3306/shaarada_kuuta_dev"
+DATABASE_URL="mysql://root:yourpassword@127.0.0.1:3306/shaarada_koota_dev"
+DIRECT_URL="mysql://root:yourpassword@127.0.0.1:3306/shaarada_koota_dev"
 NEXTAUTH_URL="http://localhost:3000"
 NEXTAUTH_SECRET="replace-with-a-long-random-secret"
 APP_URL="http://localhost:3000"
-ADMIN_EMAIL="admin@shaaradakuuta.com"
+ADMIN_EMAIL="admin@shaaradakoota.com"
 ADMIN_PASSWORD="StrongPassword123!"
 FRONTDESK_EMAILS="frontdesk@shaaradakuuta.com"
 NOTIFICATION_FROM_EMAIL="noreply@shaaradakuuta.com"

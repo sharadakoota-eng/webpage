@@ -46,11 +46,11 @@ async function main() {
   const teacherRole = await prisma.role.findUniqueOrThrow({ where: { type: RoleType.TEACHER } });
 
   await prisma.user.upsert({
-    where: { email: process.env.ADMIN_EMAIL ?? "admin@shaaradakuuta.com" },
-    update: { name: "Shaarada Kuuta Admin", passwordHash, roleId: adminRole.id },
+    where: { email: process.env.ADMIN_EMAIL ?? "admin@shaaradakoota.com" },
+    update: { name: "Sharada Koota Admin", passwordHash, roleId: adminRole.id },
     create: {
-      name: "Shaarada Kuuta Admin",
-      email: process.env.ADMIN_EMAIL ?? "admin@shaaradakuuta.com",
+      name: "Sharada Koota Admin",
+      email: process.env.ADMIN_EMAIL ?? "admin@shaaradakoota.com",
       passwordHash,
       phone: "9880199221",
       roleId: adminRole.id,
@@ -58,11 +58,11 @@ async function main() {
   });
 
   const teacherUser = await prisma.user.upsert({
-    where: { email: "teacher@shaaradakuuta.com" },
+    where: { email: "teacher@shaaradakoota.com" },
     update: {},
     create: {
       name: "Ananya Rao",
-      email: "teacher@shaaradakuuta.com",
+      email: "teacher@shaaradakoota.com",
       passwordHash,
       phone: "9880857935",
       roleId: teacherRole.id,
@@ -70,11 +70,11 @@ async function main() {
   });
 
   const parentUser = await prisma.user.upsert({
-    where: { email: "parent@shaaradakuuta.com" },
+    where: { email: "parent@shaaradakoota.com" },
     update: {},
     create: {
       name: "Maya Sharma",
-      email: "parent@shaaradakuuta.com",
+      email: "parent@shaaradakoota.com",
       passwordHash,
       phone: "9876543210",
       roleId: parentRole.id,
@@ -335,13 +335,13 @@ async function main() {
         title: "Campus Visit Week",
         description: "Guided family visits to experience the environment and meet the school team.",
         startsAt: new Date("2026-04-05T10:00:00+05:30"),
-        location: "Shaarada Kuuta Montessori, HSR Layout",
+        location: "Sharada Koota Montessori, HSR Layout",
       },
       {
         title: "Summer Camp Orientation",
         description: "Meet mentors, review schedules, and prepare for the summer learning experience.",
         startsAt: new Date("2026-04-20T11:00:00+05:30"),
-        location: "Shaarada Kuuta Montessori, HSR Layout",
+        location: "Sharada Koota Montessori, HSR Layout",
       },
     ],
     skipDuplicates: true,
@@ -354,7 +354,7 @@ async function main() {
       key: "school_profile",
       description: "Primary school metadata used throughout the platform.",
       value: {
-        name: "Shaarada Kuuta Montessori",
+        name: "Sharada Koota Montessori",
         tagline: "A House of Learning",
         phoneNumbers: ["9880199221", "9880857935"],
         email: "sharadakoota@gmail.com",

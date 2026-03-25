@@ -16,6 +16,16 @@ export async function POST(request: Request) {
     const program = body.programSlug
       ? await prisma.program.findUnique({ where: { slug: body.programSlug } })
       : null;
+    const notes = [
+      body.childAge ? `Child age: ${body.childAge}` : null,
+      body.preferredStartMonth ? `Preferred start month: ${body.preferredStartMonth}` : null,
+      body.schoolVisitStatus ? `School visit status: ${body.schoolVisitStatus}` : null,
+      body.previousSchool ? `Previous school: ${body.previousSchool}` : null,
+      body.parentExpectations ? `Parent expectations: ${body.parentExpectations}` : null,
+      body.notes ? `Additional notes: ${body.notes}` : null,
+    ]
+      .filter(Boolean)
+      .join("\n\n");
 
     const admission = await prisma.admission.create({
       data: {
@@ -25,7 +35,7 @@ export async function POST(request: Request) {
         childDob: new Date(body.childDob),
         phone: body.phone,
         email: body.email || undefined,
-        notes: body.notes,
+        notes: notes || undefined,
         programId: program?.id,
       },
     });

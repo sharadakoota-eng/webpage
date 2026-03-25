@@ -30,7 +30,7 @@ export function HeroSection() {
           <Image
             key={slide.src}
             src={slide}
-            alt={`Shaarada Kuuta hero banner ${index + 1}`}
+            alt={`Sharada Koota hero banner ${index + 1}`}
             fill
             priority={index === 0}
             className={`object-cover transition-all duration-1000 ${activeIndex === index ? "scale-100 opacity-100" : "scale-105 opacity-0"}`}
@@ -45,9 +45,10 @@ export function HeroSection() {
           <p className="inline-flex rounded-full border border-gold/30 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-gold backdrop-blur">
             Premium Montessori in HSR Layout
           </p>
-          <h1 className="mt-6 font-display text-4xl leading-tight text-white sm:text-5xl lg:text-6xl">
-            Centre of Excellence in
-            <span className="block text-gold">Holistic Child Development</span>
+          <h1 className="mt-6 font-display text-[3rem] leading-[0.98] text-white sm:text-[3.8rem] lg:text-[4.75rem]">
+            <span className="block">Centre of Excellence</span>
+            <span className="block">in Holistic Child</span>
+            <span className="block text-gold">Development</span>
           </h1>
           <p className="mt-6 max-w-2xl text-base leading-8 text-white/80 sm:text-lg">
             A warm, elegant learning house where young minds grow through Montessori-inspired experiences, emotional confidence, language-rich interactions, and purposeful care.
@@ -76,7 +77,7 @@ export function HeroSection() {
         </div>
 
         <div className="grid gap-4 self-end">
-          <div className="rounded-[2rem] border border-white/15 bg-white/10 p-6 backdrop-blur">
+          <div className="hero-float rounded-[2rem] border border-white/15 bg-white/10 p-6 backdrop-blur">
             <p className="text-sm font-semibold uppercase tracking-[0.24em] text-gold">Programs at a glance</p>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               {[
@@ -93,7 +94,7 @@ export function HeroSection() {
               ))}
             </div>
           </div>
-          <div className="ml-auto max-w-md rounded-[2rem] border border-gold/20 bg-cream p-6 shadow-card">
+          <div className="hero-float-delayed soft-pulse ml-auto max-w-md rounded-[2rem] border border-gold/20 bg-cream p-6 shadow-card">
             <p className="text-sm font-semibold uppercase tracking-[0.22em] text-gold">Parent-first experience</p>
             <p className="mt-3 text-sm leading-7 text-navy/75">
               Fast enquiries, visit booking, WhatsApp-first contact, and a scalable school platform built to grow into parent and teacher portals.

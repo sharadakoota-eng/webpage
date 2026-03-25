@@ -48,11 +48,14 @@ export function InquiryForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="rounded-[2rem] bg-white p-6 shadow-card sm:p-8">
+    <form onSubmit={handleSubmit(onSubmit)} className="rounded-[2rem] bg-white p-6 shadow-card sm:p-7">
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="sm:col-span-2">
           <p className="text-sm font-semibold uppercase tracking-[0.24em] text-gold">Start an inquiry</p>
-          <h3 className="mt-2 font-display text-2xl text-navy">Let’s plan the right learning journey</h3>
+          <h3 className="mt-2 font-display text-2xl text-navy">Let&apos;s plan the right learning journey</h3>
+          <p className="mt-2 max-w-2xl text-sm leading-7 text-navy/70">
+            Share a few details and our front desk will help you choose the right program, visit slot, or admission path.
+          </p>
         </div>
         <label className="grid gap-2">
           <span className="text-sm font-medium text-navy">Parent name</span>
@@ -89,10 +92,10 @@ export function InquiryForm() {
         </label>
         <label className="grid gap-2 sm:col-span-2">
           <span className="text-sm font-medium text-navy">Message</span>
-          <textarea {...register("message")} rows={4} className="rounded-2xl border border-navy/10 px-4 py-3 outline-none ring-gold/20 focus:ring" />
+          <textarea {...register("message")} rows={3} className="rounded-2xl border border-navy/10 px-4 py-3 outline-none ring-gold/20 focus:ring" />
         </label>
       </div>
-      <div className="mt-6 flex flex-wrap items-center gap-4">
+      <div className="mt-5 flex flex-wrap items-center gap-4">
         <button
           type="submit"
           disabled={status === "loading"}

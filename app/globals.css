@@ -51,6 +51,53 @@ section {
   animation: riseIn 0.8s ease both;
 }
 
+.hero-float {
+  animation: heroFloat 6s ease-in-out infinite;
+}
+
+.hero-float-delayed {
+  animation: heroFloat 7.2s ease-in-out infinite;
+}
+
+.soft-pulse {
+  animation: softPulse 4.6s ease-in-out infinite;
+}
+
+.gentle-float {
+  animation: gentleFloat 5.6s ease-in-out infinite;
+}
+
+.journey-glow {
+  transition:
+    transform 0.35s ease,
+    box-shadow 0.35s ease,
+    border-color 0.35s ease;
+}
+
+.journey-glow:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 28px 56px rgba(16, 33, 63, 0.14);
+  border-color: rgba(214, 164, 54, 0.28);
+}
+
+.page-media-short {
+  position: relative;
+  height: clamp(14rem, 28vw, 18rem);
+  overflow: hidden;
+}
+
+.page-media {
+  position: relative;
+  height: clamp(18rem, 34vw, 24rem);
+  overflow: hidden;
+}
+
+.page-media-tall {
+  position: relative;
+  height: clamp(21rem, 40vw, 28rem);
+  overflow: hidden;
+}
+
 @keyframes shimmer {
   100% {
     transform: translateX(100%);
@@ -66,6 +113,36 @@ section {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes heroFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes softPulse {
+  0%, 100% {
+    box-shadow: 0 18px 40px rgba(16, 33, 63, 0.08);
+  }
+
+  50% {
+    box-shadow: 0 24px 56px rgba(16, 33, 63, 0.16);
+  }
+}
+
+@keyframes gentleFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-6px);
   }
 }
 

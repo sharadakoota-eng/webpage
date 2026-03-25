@@ -6,6 +6,13 @@ import { triggerVisitBookingEvent } from "@/lib/notifications/events";
 export async function POST(request: Request) {
   try {
     const body = visitBookingSchema.parse(await request.json());
+    const notesParts = [
+      body.notes,
+      body.childAge ? `Child age: ${body.childAge}` : null,
+      body.programInterest ? `Program interested in: ${body.programInterest}` : null,
+      body.preferredTimeSlot ? `Preferred time slot: ${body.preferredTimeSlot}` : null,
+    ].filter(Boolean);
+
     const booking = await prisma.visitBooking.create({
       data: {
         parentName: body.parentName,
@@ -13,7 +20,7 @@ export async function POST(request: Request) {
         email: body.email || undefined,
         childName: body.childName,
         visitDate: new Date(body.visitDate),
-        notes: body.notes,
+        notes: notesParts.length ? notesParts.join("\n") : undefined,
       },
     });
 

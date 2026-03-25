@@ -1,6 +1,5 @@
-import { ProgramPage } from "@/components/sections/program-page";
-import { programs } from "@/lib/content";
+import { redirect } from "next/navigation";
 
 export default function CreativeAchieversPage() {
-  return <ProgramPage program={programs.find((program) => program.slug === "creative-achievers")!} />;
+  redirect("/summer-camp");
 }

@@ -12,6 +12,11 @@ type AdmissionFormValues = {
   childDob: string;
   phone: string;
   email?: string;
+  childAge?: string;
+  preferredStartMonth?: string;
+  schoolVisitStatus?: string;
+  previousSchool?: string;
+  parentExpectations?: string;
   notes?: string;
   programSlug?: string;
 };
@@ -45,7 +50,11 @@ export function AdmissionForm() {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="rounded-[2rem] bg-white p-8 shadow-card">
-      <h2 className="font-display text-3xl text-navy">Start admission</h2>
+      <p className="text-sm font-semibold uppercase tracking-[0.24em] text-gold">Admission Form</p>
+      <h2 className="mt-2 font-display text-3xl text-navy">Start admission</h2>
+      <p className="mt-3 max-w-3xl text-sm leading-7 text-navy/70">
+        This form helps the admissions team understand your child a little better before the follow-up. It is designed to stay simple for parents while still giving the school enough context to guide you properly.
+      </p>
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
         <input {...register("parentName")} placeholder="Parent name" className="rounded-2xl border border-navy/10 px-4 py-3" />
         <input {...register("phone")} placeholder="Phone" className="rounded-2xl border border-navy/10 px-4 py-3" />
@@ -60,7 +69,22 @@ export function AdmissionForm() {
             </option>
           ))}
         </select>
-        <textarea {...register("notes")} rows={4} placeholder="Notes" className="rounded-2xl border border-navy/10 px-4 py-3 sm:col-span-2" />
+        <input {...register("childAge")} placeholder="Child age" className="rounded-2xl border border-navy/10 px-4 py-3" />
+        <input {...register("preferredStartMonth")} placeholder="Preferred joining month" className="rounded-2xl border border-navy/10 px-4 py-3" />
+        <select {...register("schoolVisitStatus")} className="rounded-2xl border border-navy/10 px-4 py-3">
+          <option value="">Have you visited the school?</option>
+          <option value="Not yet">Not yet</option>
+          <option value="Visit requested">Visit requested</option>
+          <option value="Already visited">Already visited</option>
+        </select>
+        <input {...register("previousSchool")} placeholder="Previous school (optional)" className="rounded-2xl border border-navy/10 px-4 py-3" />
+        <textarea
+          {...register("parentExpectations")}
+          rows={3}
+          placeholder="What are you hoping for from the school?"
+          className="rounded-2xl border border-navy/10 px-4 py-3 sm:col-span-2"
+        />
+        <textarea {...register("notes")} rows={4} placeholder="Additional notes" className="rounded-2xl border border-navy/10 px-4 py-3 sm:col-span-2" />
       </div>
       <div className="mt-4 space-y-1">
         {Object.keys(errors).length > 0 ? (

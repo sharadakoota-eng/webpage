@@ -9,12 +9,13 @@ import {
   Trees,
 } from "lucide-react";
 import { InquiryForm } from "@/components/sections/inquiry-form";
+import { TestimonialsCarousel } from "@/components/sections/testimonials-carousel";
 import { HeroSection } from "@/components/sections/hero";
 import { SectionHeading } from "@/components/ui/section-heading";
 import homeImage from "@/assets/home.jpg";
 import programsImage from "@/assets/programs.jpg";
 import galleryImage from "@/assets/gallery.jpg";
-import testimonialsImage from "@/assets/testimonials.jpg";
+import testimonialsImage from "@/assets/testimonials.png";
 import teamImage from "@/assets/team.jpg";
 
 const pillars = [
@@ -30,7 +31,7 @@ const highlights = [
   "Day Care",
   "After School Activities",
   "Summer Camp",
-  "Creative Achievers",
+  "Admissions",
   "Kannada Kasturi",
 ];
 
@@ -62,15 +63,33 @@ const signatureBlocks = [
 const featuredTestimonials = [
   {
     quote:
-      "Shaarada Kuuta feels calm, polished, and caring. We were especially reassured by how thoughtfully the school communicates with parents.",
+      "Sharada Koota feels calm, polished, and caring. We were especially reassured by how thoughtfully the school communicates with parents.",
     parent: "Ritika N.",
     child: "Parent of Vihaan",
   },
   {
     quote:
-      "The blend of structure, creativity, and emotional warmth is exactly what we wanted for our child’s early years journey.",
+      "The blend of structure, creativity, and emotional warmth is exactly what we wanted for our child&apos;s early years journey.",
     parent: "Karthik R.",
     child: "Parent of Anika",
+  },
+  {
+    quote:
+      "The environment feels warm and beautifully organized. Our child settled much faster than we expected and now looks forward to school each morning.",
+    parent: "Meghana S.",
+    child: "Parent of Riaan",
+  },
+  {
+    quote:
+      "We loved the combination of structure and gentleness. The school makes parents feel informed, welcomed, and genuinely supported.",
+    parent: "Shweta P.",
+    child: "Parent of Aadhya",
+  },
+  {
+    quote:
+      "From the first visit, the atmosphere felt calm, thoughtful, and child-focused. That sense of trust made a huge difference for our family.",
+    parent: "Naveen K.",
+    child: "Parent of Tanvi",
   },
 ];
 
@@ -110,16 +129,16 @@ export default function HomePage() {
         ))}
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-[0.92fr_1.08fr]">
+      <section className="grid items-start gap-6 lg:grid-cols-[0.92fr_1.08fr]">
         <div className="overflow-hidden rounded-[2rem] bg-white shadow-card">
-          <div className="relative h-72">
-            <Image src={homeImage} alt="Shaarada Kuuta school environment" fill className="object-cover" />
+          <div className="page-media">
+            <Image src={homeImage} alt="Sharada Koota school environment" fill className="object-cover object-center" />
           </div>
           <div className="p-8">
             <SectionHeading
               eyebrow="About"
               title="A premium Montessori journey rooted in warmth and trust"
-              description="Shaarada Kuuta Montessori blends elegant environments, child-centred guidance, and thoughtful communication to support both children and parents."
+              description="Sharada Koota Montessori blends elegant environments, child-centred guidance, and thoughtful communication to support both children and parents."
             />
           </div>
         </div>
@@ -127,7 +146,10 @@ export default function HomePage() {
           <p className="text-sm font-semibold uppercase tracking-[0.24em] text-gold">
             Centre of Excellence in Holistic Child Development
           </p>
-          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+          <p className="mt-4 max-w-2xl text-sm leading-7 text-navy/70">
+            Every program is designed to strengthen thinking, communication, emotional confidence, cultural rootedness, and joyful independence.
+          </p>
+          <div className="mt-6 grid content-start gap-3 sm:grid-cols-2">
             {pillars.map((pillar) => (
               <div key={pillar} className="rounded-3xl bg-white px-4 py-4 text-sm font-medium text-navy shadow-card">
                 {pillar}
@@ -156,12 +178,12 @@ export default function HomePage() {
       </section>
 
       <section className="overflow-hidden rounded-[2rem] bg-white shadow-card">
-        <div className="grid gap-0 lg:grid-cols-[0.85fr_1.15fr]">
-          <div className="relative min-h-[22rem]">
-            <Image src={programsImage} alt="Shaarada Kuuta programs" fill className="object-cover" />
+        <div className="grid items-stretch gap-0 lg:grid-cols-[0.85fr_1.15fr]">
+          <div className="relative h-full min-h-[32rem] overflow-hidden">
+            <Image src={programsImage} alt="Sharada Koota programs" fill className="object-cover object-center" />
             <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(16,33,63,0.08),rgba(16,33,63,0.48))]" />
           </div>
-          <div className="p-8">
+          <div className="flex h-full flex-col justify-center p-8">
             <SectionHeading
               eyebrow="Programs"
               title="Designed around care, curiosity, and confidence"
@@ -181,7 +203,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-[1.08fr_0.92fr]">
+      <section className="grid items-stretch gap-6 lg:grid-cols-[1.08fr_0.92fr]">
         <div className="rounded-[2rem] bg-white p-8 shadow-card">
           <SectionHeading
             eyebrow="Why Choose Us"
@@ -208,10 +230,10 @@ export default function HomePage() {
           </div>
         </div>
         <div className="overflow-hidden rounded-[2rem] bg-white shadow-card">
-          <div className="relative min-h-[28rem]">
-            <Image src={teamImage} alt="Teachers and care team" fill className="object-cover" />
+          <div className="relative h-full min-h-[32rem] overflow-hidden">
+            <Image src={teamImage} alt="Teachers and care team" fill className="object-cover object-center" />
             <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(16,33,63,0.12),rgba(16,33,63,0.76))]" />
-            <div className="absolute inset-x-6 bottom-6 rounded-[1.8rem] border border-white/15 bg-white/10 p-6 backdrop-blur">
+            <div className="absolute inset-x-6 bottom-6 rounded-[1.8rem] border border-white/15 bg-white/10 p-6 backdrop-blur gentle-float">
               <p className="text-sm font-semibold uppercase tracking-[0.24em] text-gold">Parent confidence</p>
               <p className="mt-3 text-sm leading-7 text-white/80">
                 From first inquiry to school visit, the experience is designed to feel personal, premium, and easy to trust.
@@ -229,18 +251,10 @@ export default function HomePage() {
               title="Families should feel reassurance before they even visit"
               description="A premium school website should build trust quickly, and these sections are designed to help parents feel the warmth, polish, and credibility of the school."
             />
-            <div className="mt-8 grid gap-4">
-              {featuredTestimonials.map((item) => (
-                <div key={item.parent} className="rounded-[1.6rem] border border-navy/10 bg-cream p-6 shadow-card">
-                  <p className="text-base leading-8 text-navy/80">"{item.quote}"</p>
-                  <p className="mt-4 text-sm font-semibold text-gold">{item.parent}</p>
-                  <p className="text-sm text-navy/55">{item.child}</p>
-                </div>
-              ))}
-            </div>
+            <TestimonialsCarousel items={featuredTestimonials} />
           </div>
-          <div className="relative min-h-[28rem]">
-            <Image src={testimonialsImage} alt="Parent trust and testimonials" fill className="object-cover" />
+          <div className="page-media-tall">
+            <Image src={testimonialsImage} alt="Parent trust and testimonials" fill className="object-cover object-center" />
             <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(16,33,63,0.14),rgba(16,33,63,0.72))]" />
           </div>
         </div>
@@ -284,7 +298,11 @@ export default function HomePage() {
             "Submit inquiry or admission form",
             "Receive guided follow-up from the front desk",
           ].map((step, index) => (
-            <div key={step} className="rounded-[1.75rem] bg-cream p-6 shadow-card">
+            <div
+              key={step}
+              className="stagger-rise journey-glow rounded-[1.75rem] border border-transparent bg-cream p-6 shadow-card"
+              style={{ animationDelay: `${index * 120}ms` }}
+            >
               <p className="text-xs font-semibold uppercase tracking-[0.24em] text-gold">Step {index + 1}</p>
               <p className="mt-3 text-sm leading-7 text-navy/75">{step}</p>
               <ArrowRight className="mt-4 h-4 w-4 text-navy/40" />
@@ -293,27 +311,40 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr]">
+      <section className="grid items-start gap-6 lg:grid-cols-[1.02fr_0.98fr]">
         <InquiryForm />
         <div className="overflow-hidden rounded-[2rem] bg-navy text-white shadow-soft">
-          <div className="relative h-60">
-            <Image src={galleryImage} alt="Shaarada Kuuta gallery preview" fill className="object-cover opacity-70" />
+          <div className="page-media-short">
+            <Image src={galleryImage} alt="Sharada Koota gallery preview" fill className="object-cover object-center opacity-70" />
             <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(9,22,43,0.12),rgba(9,22,43,0.78))]" />
           </div>
-          <div className="p-8">
-            <SectionHeading
-              eyebrow="Contact Strip"
-              title="Visit the school, speak with the front desk, or apply online"
-              description="Optimized for mobile-first enquiries with click-to-call, WhatsApp, and enquiry workflows that feed directly into the admin lead management system."
-            />
-            <div className="mt-8 grid gap-4">
+          <div className="p-7">
+            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-gold">Contact Strip</p>
+            <h2 className="mt-3 font-display text-3xl text-white">Speak with the front desk, plan a visit, or begin admissions</h2>
+            <p className="mt-4 text-sm leading-7 text-white/75">
+              Built for busy parents who want clear next steps. Call instantly, message on WhatsApp, submit an inquiry, or request a guided school visit without friction.
+            </p>
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              {[
+                { label: "Response style", value: "Warm and guided follow-up" },
+                { label: "Support mode", value: "Call, WhatsApp, and inquiry form" },
+                { label: "Visit option", value: "Book a school visit easily" },
+                { label: "Admissions", value: "Start online and continue offline" },
+              ].map((item) => (
+                <div key={item.label} className="rounded-[1.5rem] border border-white/10 bg-white/8 p-4 backdrop-blur">
+                  <p className="text-xs uppercase tracking-[0.2em] text-white/55">{item.label}</p>
+                  <p className="mt-2 text-sm font-medium text-white/90">{item.value}</p>
+                </div>
+              ))}
+            </div>
+            <div className="mt-6 grid gap-3">
               {[
                 "Book a school visit",
                 "Call the admissions desk",
                 "Submit a contact enquiry",
                 "Start the admission form online",
               ].map((item) => (
-                <div key={item} className="rounded-3xl bg-white/10 px-4 py-4 text-sm text-white/90">
+                <div key={item} className="rounded-3xl bg-white/10 px-4 py-3 text-sm text-white/90">
                   {item}
                 </div>
               ))}

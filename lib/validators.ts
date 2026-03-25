@@ -16,6 +16,11 @@ export const admissionSchema = z.object({
   childDob: z.string().min(1),
   phone: z.string().min(10),
   email: z.string().email().optional().or(z.literal("")),
+  childAge: z.string().optional().or(z.literal("")),
+  preferredStartMonth: z.string().optional().or(z.literal("")),
+  schoolVisitStatus: z.string().optional().or(z.literal("")),
+  previousSchool: z.string().optional().or(z.literal("")),
+  parentExpectations: z.string().max(1000).optional().or(z.literal("")),
   notes: z.string().max(2000).optional(),
   programSlug: z.string().optional(),
 });
@@ -24,6 +29,9 @@ export const contactSchema = z.object({
   name: z.string().min(2),
   email: z.string().email().optional().or(z.literal("")),
   phone: z.string().min(10).optional().or(z.literal("")),
+  childAge: z.string().optional().or(z.literal("")),
+  programInterest: z.string().optional().or(z.literal("")),
+  preferredContactMethod: z.string().optional().or(z.literal("")),
   subject: z.string().min(2).optional().or(z.literal("")),
   message: z.string().min(10).max(2000),
 });
@@ -33,6 +41,9 @@ export const visitBookingSchema = z.object({
   phone: z.string().min(10),
   email: z.string().email().optional().or(z.literal("")),
   childName: z.string().optional(),
+  childAge: z.string().optional().or(z.literal("")),
+  programInterest: z.string().optional().or(z.literal("")),
+  preferredTimeSlot: z.string().optional().or(z.literal("")),
   visitDate: z.string().min(1),
   notes: z.string().max(1000).optional(),
 });

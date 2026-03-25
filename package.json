@@ -1,9 +1,10 @@
 {
-  "name": "shaarada-kuuta-platform",
+  "name": "shaarada-koota-platform",
   "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "postinstall": "prisma generate",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",

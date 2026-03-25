@@ -1,6 +1,6 @@
-# Shaarada Kuuta Montessori Platform
+# Shaarada Koota Montessori Platform
 
-Production-ready, mobile-first website and school management platform scaffold for Shaarada Kuuta Montessori - A House of Learning.
+Production-ready, mobile-first website and school management platform scaffold for Shaarada Koota Montessori - A House of Learning.
 
 ## Stack
 
@@ -44,7 +44,7 @@ Production-ready, mobile-first website and school management platform scaffold f
 ## Local setup
 
 1. Install Node.js 20+ and npm.
-2. Create a MySQL database, for example `shaarada_kuuta_dev`.
+2. Create a MySQL database, for example `shaarada_koota_dev`.
 3. Copy `.env.local.example` to `.env.local` and update credentials.
 4. Install dependencies:
 
@@ -78,10 +78,10 @@ npm run dev
 
 ## Sample credentials
 
-- Admin: value from `ADMIN_EMAIL`, default `admin@shaaradakuuta.com`
+- Admin: value from `ADMIN_EMAIL`, default `admin@shaaradakoota.com`
 - Password: value from `ADMIN_PASSWORD`, default `ChangeMe123!`
-- Teacher: `teacher@shaaradakuuta.com`
-- Parent: `parent@shaaradakuuta.com`
+- Teacher: `teacher@shaaradakoota.com`
+- Parent: `parent@shaaradakoota.com`
 
 ## Project structure
 

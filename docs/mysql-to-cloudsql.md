@@ -32,8 +32,8 @@ npx prisma migrate deploy
 ## Export and import example
 
 ```bash
-mysqldump -u root -p --databases shaarada_kuuta > shaarada_kuuta_backup.sql
-mysql -u cloudsql_user -p -h CLOUD_SQL_HOST shaarada_kuuta < shaarada_kuuta_backup.sql
+mysqldump -u root -p --databases shaarada_koota > shaarada_koota_backup.sql
+mysql -u cloudsql_user -p -h CLOUD_SQL_HOST shaarada_koota < shaarada_koota_backup.sql
 ```
 
 ## Environment switch
@@ -41,8 +41,8 @@ mysql -u cloudsql_user -p -h CLOUD_SQL_HOST shaarada_kuuta < shaarada_kuuta_back
 Only the connection strings need to change:
 
 ```env
-DATABASE_URL="mysql://user:password@cloudsql-host:3306/shaarada_kuuta"
-DIRECT_URL="mysql://user:password@cloudsql-host:3306/shaarada_kuuta"
+DATABASE_URL="mysql://user:password@cloudsql-host:3306/shaarada_koota"
+DIRECT_URL="mysql://user:password@cloudsql-host:3306/shaarada_koota"
 ```
 
 ## Seed script reuse

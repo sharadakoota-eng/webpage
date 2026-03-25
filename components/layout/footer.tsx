@@ -8,7 +8,7 @@ export function Footer() {
     <footer className="mt-12 border-t border-navy/10 bg-[linear-gradient(180deg,#0f1f3d_0%,#09162b_100%)] text-cream">
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:px-6 lg:grid-cols-[1.15fr_0.75fr_0.85fr] lg:px-8">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-gold">Shaarada Kuuta Montessori</p>
+          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-gold">Sharada Koota Montessori</p>
           <p className="mt-3 font-display text-3xl">A warm, premium home for meaningful early learning.</p>
           <p className="mt-4 max-w-md text-sm leading-7 text-cream/75">
             Built for families who value elegance, trust, care, and a deeply thoughtful Montessori-inspired childhood journey.
@@ -52,7 +52,7 @@ export function Footer() {
       </div>
       <div className="border-t border-white/10">
         <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-4 text-xs text-cream/55 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
-          <p>Shaarada Kuuta Montessori. All rights reserved.</p>
+          <p>Sharada Koota Montessori. All rights reserved.</p>
           <p>Designed for a premium, mobile-first parent experience.</p>
         </div>
       </div>
