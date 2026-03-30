@@ -1,11 +1,12 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, useState } from "react";
-import { signIn } from "next-auth/react";
+import { useActionState, useMemo } from "react";
+import { useFormStatus } from "react-dom";
 import { LockKeyhole, School, ShieldCheck, Users } from "lucide-react";
 import logoImage from "@/assets/logo.png";
 import heroImage from "@/assets/contact.png";
+import { loginAction } from "@/app/login/actions";
 
 const accessCards = [
   {
@@ -26,10 +27,7 @@ const accessCards = [
 ];
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [state, formAction] = useActionState(loginAction, {});
 
   const demoAccounts = useMemo(
     () => [
@@ -39,27 +37,6 @@ export default function LoginPage() {
     ],
     [],
   );
-
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError("");
-    setLoading(true);
-
-    const result = await signIn("credentials", {
-      email,
-      password,
-      callbackUrl: "/portal",
-      redirect: false,
-    });
-
-    if (result?.error) {
-      setLoading(false);
-      setError("Invalid login credentials.");
-      return;
-    }
-
-    window.location.href = result?.url ?? "/portal";
-  }
 
   return (
     <div className="grid gap-8 lg:grid-cols-[1.08fr_0.92fr]">
@@ -128,24 +105,20 @@ export default function LoginPage() {
           Login with your assigned credentials. Users are redirected automatically to the correct workspace for admin, teacher, or parent access.
         </p>
 
-        <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+        <form action={formAction} className="mt-8 space-y-4">
           <input
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
+            name="email"
             placeholder="Email"
             className="w-full rounded-2xl border border-navy/10 px-4 py-3"
           />
           <input
+            name="password"
             type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
             placeholder="Password"
             className="w-full rounded-2xl border border-navy/10 px-4 py-3"
           />
-          {error ? <p className="text-sm text-red-600">{error}</p> : null}
-          <button className="w-full rounded-full bg-navy px-5 py-3 text-sm font-semibold text-white">
-            {loading ? "Signing in..." : "Login to portal"}
-          </button>
+          {state?.error ? <p className="text-sm text-red-600">{state.error}</p> : null}
+          <SubmitButton />
         </form>
 
         <div className="mt-8 rounded-[1.75rem] bg-cream p-5">
@@ -164,5 +137,15 @@ export default function LoginPage() {
         </div>
       </section>
     </div>
+  );
+}
+
+function SubmitButton() {
+  const { pending } = useFormStatus();
+
+  return (
+    <button disabled={pending} className="w-full rounded-full bg-navy px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70">
+      {pending ? "Signing in..." : "Login to portal"}
+    </button>
   );
 }

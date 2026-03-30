@@ -1,5 +1,8 @@
 import { getAdminDashboardData } from "@/lib/erp-data";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 function formatDate(value: Date) {
   return new Intl.DateTimeFormat("en-IN", {
     day: "2-digit",

@@ -1,6 +1,9 @@
 import { auth } from "@/lib/auth";
 import { getTeacherPortalData } from "@/lib/erp-data";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function TeacherPage() {
   const session = await auth();
   const userId = session?.user?.id;
