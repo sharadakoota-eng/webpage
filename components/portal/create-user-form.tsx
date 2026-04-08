@@ -1,15 +1,22 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 type CreateUserValues = {
   name: string;
   email: string;
   phone: string;
   password: string;
-  roleType: "ADMIN" | "TEACHER" | "PARENT";
+  roleType: "ADMIN" | "TEACHER";
   designation?: string;
-  occupation?: string;
+};
+
+type CreateUserFormProps = {
+  defaultRoleType?: "ADMIN" | "TEACHER";
+  lockRoleType?: boolean;
+  title?: string;
+  description?: string;
 };
 
 const initialValues: CreateUserValues = {
@@ -17,13 +24,18 @@ const initialValues: CreateUserValues = {
   email: "",
   phone: "",
   password: "",
-  roleType: "PARENT",
+  roleType: "TEACHER",
   designation: "",
-  occupation: "",
 };
 
-export function CreateUserForm() {
-  const [values, setValues] = useState<CreateUserValues>(initialValues);
+export function CreateUserForm({
+  defaultRoleType = "TEACHER",
+  lockRoleType = false,
+  title = "Create admin or teacher access only",
+  description = "This section is only for direct staff access. Parent accounts should never be created here. Parents must be generated from approved admissions or student enrollment workflows.",
+}: CreateUserFormProps) {
+  const router = useRouter();
+  const [values, setValues] = useState<CreateUserValues>({ ...initialValues, roleType: defaultRoleType });
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
 
@@ -46,8 +58,9 @@ export function CreateUserForm() {
       }
 
       setStatus("success");
-      setMessage("User created successfully.");
-      setValues(initialValues);
+      setMessage(data.message || "User created successfully.");
+      setValues({ ...initialValues, roleType: defaultRoleType });
+      router.refresh();
     } catch (error) {
       setStatus("error");
       setMessage(error instanceof Error ? error.message : "Unable to create user");
@@ -56,11 +69,13 @@ export function CreateUserForm() {
 
   return (
     <form onSubmit={handleSubmit} className="rounded-[2rem] bg-white p-8 shadow-card">
-      <p className="text-sm font-semibold uppercase tracking-[0.24em] text-gold">Create Portal User</p>
-      <h2 className="mt-2 font-display text-3xl text-navy">Add admin, teacher, or parent access</h2>
-      <p className="mt-3 text-sm leading-7 text-navy/70">
-        This is the first step in making the ERP usable for your school team. Admin can create users here and then continue with assignment, performance, attendance, and fee workflows.
-      </p>
+      <p className="text-sm font-semibold uppercase tracking-[0.24em] text-gold">Access & Staff</p>
+      <h2 className="mt-2 font-display text-3xl text-navy">{title}</h2>
+      <p className="mt-3 text-sm leading-7 text-navy/70">{description}</p>
+
+      <div className="mt-5 rounded-[1.45rem] bg-[#fbf7f0] p-4 text-sm leading-7 text-navy/68">
+        Use a temporary password here, then hand it to the staff member. Admin can later disable access, reset credentials, or update teacher details from the same control module.
+      </div>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
         <input
@@ -88,36 +103,32 @@ export function CreateUserForm() {
           placeholder="Temporary password"
           className="rounded-2xl border border-navy/10 px-4 py-3"
         />
-        <select
-          value={values.roleType}
-          onChange={(event) =>
-            setValues((current) => ({
-              ...current,
-              roleType: event.target.value as CreateUserValues["roleType"],
-            }))
-          }
-          className="rounded-2xl border border-navy/10 px-4 py-3"
-        >
-          <option value="PARENT">Parent</option>
-          <option value="TEACHER">Teacher</option>
-          <option value="ADMIN">Admin</option>
-        </select>
-
-        {values.roleType === "TEACHER" ? (
-          <input
-            value={values.designation}
-            onChange={(event) => setValues((current) => ({ ...current, designation: event.target.value }))}
-            placeholder="Designation"
-            className="rounded-2xl border border-navy/10 px-4 py-3"
-          />
+        {lockRoleType ? (
+          <div className="rounded-2xl border border-navy/10 bg-[#fbf7f0] px-4 py-3 text-sm text-navy/70">
+            {values.roleType === "TEACHER" ? "Teacher access" : "Admin access"}
+          </div>
         ) : (
-          <input
-            value={values.occupation}
-            onChange={(event) => setValues((current) => ({ ...current, occupation: event.target.value }))}
-            placeholder={values.roleType === "PARENT" ? "Occupation" : "Department / notes"}
+          <select
+            value={values.roleType}
+            onChange={(event) =>
+              setValues((current) => ({
+                ...current,
+                roleType: event.target.value as CreateUserValues["roleType"],
+              }))
+            }
             className="rounded-2xl border border-navy/10 px-4 py-3"
-          />
+          >
+            <option value="TEACHER">Teacher</option>
+            <option value="ADMIN">Admin</option>
+          </select>
         )}
+
+        <input
+          value={values.designation}
+          onChange={(event) => setValues((current) => ({ ...current, designation: event.target.value }))}
+          placeholder={values.roleType === "TEACHER" ? "Designation" : "Access note / department"}
+          className="rounded-2xl border border-navy/10 px-4 py-3"
+        />
       </div>
 
       <div className="mt-5 flex flex-wrap items-center gap-4">

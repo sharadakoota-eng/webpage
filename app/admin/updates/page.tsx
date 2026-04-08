@@ -1,4 +1,6 @@
 import { getSchoolUpdatesSnapshot } from "@/lib/erp-data";
+import { prisma } from "@/lib/prisma";
+import { SpecialPopupForm } from "@/components/portal/special-popup-form";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -13,6 +15,27 @@ function formatDate(value: Date) {
 
 export default async function AdminUpdatesPage() {
   const { announcements, events, lunchMenu } = await getSchoolUpdatesSnapshot();
+  const popupSetting = await prisma.setting.findUnique({
+    where: { key: "special_event_popup" },
+    select: { value: true },
+  });
+  const popup = (popupSetting?.value as
+    | {
+        enabled?: boolean;
+        title?: string;
+        message?: string;
+        buttonLabel?: string;
+        buttonUrl?: string;
+        audience?: string;
+      }
+    | undefined) ?? {
+    enabled: false,
+    title: "",
+    message: "",
+    buttonLabel: "View details",
+    buttonUrl: "/events",
+    audience: "ALL",
+  };
 
   return (
     <div className="space-y-8">
@@ -23,6 +46,17 @@ export default async function AdminUpdatesPage() {
           This module is where events, announcements, and lunch menu operations should be managed. These updates are designed to reflect on the public website and in the parent portal.
         </p>
       </section>
+
+      <SpecialPopupForm
+        initialState={{
+          enabled: popup.enabled ?? false,
+          title: popup.title ?? "",
+          message: popup.message ?? "",
+          buttonLabel: popup.buttonLabel ?? "View details",
+          buttonUrl: popup.buttonUrl ?? "/events",
+          audience: popup.audience ?? "ALL",
+        }}
+      />
 
       <section className="grid gap-6 lg:grid-cols-[0.92fr_1.08fr]">
         <div className="rounded-[2rem] bg-sky p-8 shadow-card">

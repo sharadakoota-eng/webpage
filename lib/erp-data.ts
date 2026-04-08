@@ -1,4 +1,4 @@
-import { AdmissionStatus, InquiryStatus, NotificationStatus } from "@prisma/client";
+import { AdmissionStatus, HomeworkUpdateAudience, InquiryStatus, NotificationStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 export type LeadFeedItem = {
@@ -122,7 +122,36 @@ export async function getAdminDashboardData() {
 }
 
 export async function getSchoolUpdatesSnapshot() {
-  const [announcements, events, lunchMenuSetting] = await Promise.all([
+  return getSchoolUpdatesSnapshotForPrograms();
+}
+
+type MealPlannerEntry = {
+  id: string;
+  date: string;
+  title: string;
+  items: string[];
+  note?: string;
+  programIds?: string[];
+};
+
+function getTodayKey() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function mapMealEntryToMenu(entry: MealPlannerEntry | null | undefined) {
+  if (!entry) {
+    return null;
+  }
+
+  return {
+    title: entry.title || "Today's Lunch Menu",
+    items: entry.items ?? [],
+    note: entry.note ?? "Updated by the school admin team.",
+  };
+}
+
+export async function getSchoolUpdatesSnapshotForPrograms(programIds: string[] = []) {
+  const [announcements, events, lunchMenuSetting, plannerSetting] = await Promise.all([
     prisma.announcement.findMany({
       where: { isPublished: true },
       orderBy: { createdAt: "desc" },
@@ -139,9 +168,19 @@ export async function getSchoolUpdatesSnapshot() {
       where: { key: "today_lunch_menu" },
       select: { value: true },
     }),
+    prisma.setting.findUnique({
+      where: { key: "meal_planner_entries" },
+      select: { value: true },
+    }),
   ]);
 
-  const lunchMenu =
+  const plannerEntries = ((plannerSetting?.value as MealPlannerEntry[] | undefined) ?? []).filter(Boolean);
+  const todayKey = getTodayKey();
+  const matchingEntry =
+    plannerEntries.find((entry) => entry.date === todayKey && (entry.programIds ?? []).some((id) => programIds.includes(id))) ??
+    plannerEntries.find((entry) => entry.date === todayKey && (!(entry.programIds ?? []).length || (entry.programIds ?? []).includes("all")));
+
+  const fallbackLunchMenu =
     (lunchMenuSetting?.value as
       | {
           title?: string;
@@ -153,6 +192,8 @@ export async function getSchoolUpdatesSnapshot() {
       items: ["Vegetable pulao", "Curd rice", "Seasonal fruit", "Warm milk"],
       note: "Update this from the admin ERP so it reflects in the parent portal.",
     };
+
+  const lunchMenu = mapMealEntryToMenu(matchingEntry) ?? fallbackLunchMenu;
 
   return { announcements, events, lunchMenu };
 }
@@ -180,7 +221,15 @@ export async function getTeacherPortalData(userId?: string) {
       },
       homeworkUpdates: {
         orderBy: { publishedAt: "desc" },
-        take: 5,
+        take: 8,
+        include: {
+          class: true,
+          students: {
+            include: {
+              student: true,
+            },
+          },
+        },
       },
       observationNotes: {
         orderBy: { observedAt: "desc" },
@@ -207,15 +256,56 @@ export async function getParentPortalData(userId?: string) {
           student: {
             include: {
               currentClass: true,
+              enrollments: {
+                orderBy: { createdAt: "desc" },
+                include: {
+                  program: {
+                    include: {
+                      feeStructures: true,
+                    },
+                  },
+                },
+              },
               attendance: {
                 orderBy: { date: "desc" },
                 take: 30,
               },
+              homeworkUpdates: {
+                take: 16,
+                orderBy: {
+                  homeworkUpdate: {
+                    publishedAt: "desc",
+                  },
+                },
+                include: {
+                  homeworkUpdate: {
+                    include: {
+                      class: true,
+                      teacher: {
+                        include: {
+                          user: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+              admissions: {
+                orderBy: { createdAt: "desc" },
+                take: 1,
+                include: {
+                  documents: {
+                    orderBy: { requestedAt: "asc" },
+                  },
+                  program: true,
+                },
+              },
               invoices: {
                 orderBy: { dueDate: "desc" },
-                take: 5,
+                take: 12,
                 include: {
                   payments: true,
+                  receipt: true,
                 },
               },
               receipts: {
@@ -234,4 +324,21 @@ export async function getParentPortalData(userId?: string) {
   });
 
   return parent;
+}
+
+export function splitParentUpdatesByAudience<
+  T extends {
+    homeworkUpdate: {
+      audienceType: HomeworkUpdateAudience;
+    };
+  },
+>(homeworkUpdates: T[] | undefined) {
+  const classUpdates = (homeworkUpdates ?? []).filter(
+    (entry) => entry.homeworkUpdate.audienceType === HomeworkUpdateAudience.CLASS_UPDATE,
+  );
+  const individualNotes = (homeworkUpdates ?? []).filter(
+    (entry) => entry.homeworkUpdate.audienceType === HomeworkUpdateAudience.INDIVIDUAL_NOTE,
+  );
+
+  return { classUpdates, individualNotes };
 }

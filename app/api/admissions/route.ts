@@ -1,7 +1,19 @@
+import fs from "node:fs/promises";
+import path from "node:path";
+import crypto from "node:crypto";
+import { AdmissionStatus, ApplicationDocumentStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { admissionSchema } from "@/lib/validators";
+import { admissionDocumentTypes, buildAdmissionNotes, type AdmissionPrimaryParent } from "@/lib/admissions";
 import { triggerAdmissionEvent } from "@/lib/notifications/events";
+
+type UploadedAdmissionDocument = {
+  documentType: (typeof admissionDocumentTypes)[number]["type"];
+  status: "UPLOADED";
+  fileName: string;
+  fileUrl: string;
+};
 
 function createApplicationNumber() {
   const date = new Date();
@@ -10,33 +22,153 @@ function createApplicationNumber() {
     .padStart(5, "0")}`;
 }
 
+function createShareToken() {
+  return crypto.randomBytes(12).toString("hex");
+}
+
+function sanitizeSegment(value: string) {
+  return value.replace(/[^a-zA-Z0-9._-]/g, "-");
+}
+
+async function saveDocumentUploads(applicationNumber: string, formData: FormData): Promise<UploadedAdmissionDocument[]> {
+  const uploadDirectory = path.join(process.cwd(), "public", "uploads", "admissions", applicationNumber);
+  await fs.mkdir(uploadDirectory, { recursive: true });
+
+  const uploads = await Promise.all(
+    admissionDocumentTypes.map(async (document) => {
+      const file = formData.get(document.key);
+      if (!(file instanceof File) || file.size === 0) {
+        return null;
+      }
+
+      const ext = path.extname(file.name) || ".bin";
+      const fileName = `${document.key}-${Date.now()}-${sanitizeSegment(path.basename(file.name, ext))}${ext}`;
+      const targetPath = path.join(uploadDirectory, fileName);
+      const arrayBuffer = await file.arrayBuffer();
+
+      await fs.writeFile(targetPath, Buffer.from(arrayBuffer));
+
+      return {
+        documentType: document.type,
+        status: ApplicationDocumentStatus.UPLOADED,
+        fileName: file.name,
+        fileUrl: `/uploads/admissions/${applicationNumber}/${fileName}`,
+      };
+    }),
+  );
+
+  return uploads.filter((item): item is UploadedAdmissionDocument => item !== null);
+}
+
 export async function POST(request: Request) {
   try {
-    const body = admissionSchema.parse(await request.json());
+    const formData = await request.formData();
+    const raw = Object.fromEntries(
+      Array.from(formData.entries()).filter(([, value]) => typeof value === "string"),
+    ) as Record<string, string>;
+
+    const body = admissionSchema.parse(raw);
+    const primaryParent = body.primaryParent as AdmissionPrimaryParent;
+    const primaryParentName =
+      primaryParent === "MOTHER"
+        ? body.motherName
+        : primaryParent === "GUARDIAN"
+          ? body.guardianName || body.fatherName || body.motherName
+          : body.fatherName;
+    const primaryPhone =
+      primaryParent === "MOTHER"
+        ? body.motherPhone
+        : primaryParent === "GUARDIAN"
+          ? body.guardianPhone
+          : body.fatherPhone;
+    const primaryEmail =
+      primaryParent === "MOTHER"
+        ? body.motherEmail
+        : primaryParent === "GUARDIAN"
+          ? body.guardianEmail
+          : body.fatherEmail;
+    if (!primaryPhone) {
+      return NextResponse.json({ success: false, message: "Primary parent phone is required." }, { status: 400 });
+    }
     const program = body.programSlug
       ? await prisma.program.findUnique({ where: { slug: body.programSlug } })
       : null;
-    const notes = [
-      body.childAge ? `Child age: ${body.childAge}` : null,
-      body.preferredStartMonth ? `Preferred start month: ${body.preferredStartMonth}` : null,
-      body.schoolVisitStatus ? `School visit status: ${body.schoolVisitStatus}` : null,
-      body.previousSchool ? `Previous school: ${body.previousSchool}` : null,
-      body.parentExpectations ? `Parent expectations: ${body.parentExpectations}` : null,
-      body.notes ? `Additional notes: ${body.notes}` : null,
-    ]
-      .filter(Boolean)
-      .join("\n\n");
+    const applicationNumber = createApplicationNumber();
+    const uploadedDocuments = await saveDocumentUploads(applicationNumber, formData);
+    const notes = buildAdmissionNotes({
+      childAge: body.childAge,
+      preferredStartMonth: body.preferredStartMonth,
+      schoolVisitStatus: body.schoolVisitStatus,
+      previousSchool: body.previousSchool,
+      parentExpectations: body.parentExpectations,
+      notes: body.notes,
+    });
 
     const admission = await prisma.admission.create({
       data: {
-        applicationNumber: createApplicationNumber(),
-        parentName: body.parentName,
+        applicationNumber,
+        shareToken: createShareToken(),
+        parentName: primaryParentName,
         childName: body.childName,
         childDob: new Date(body.childDob),
-        phone: body.phone,
-        email: body.email || undefined,
+        phone: primaryPhone,
+        email: primaryEmail || undefined,
         notes: notes || undefined,
+        status: AdmissionStatus.SUBMITTED,
+        submittedByParent: true,
+        submittedAt: new Date(),
         programId: program?.id,
+        familyProfile: {
+          primaryParent,
+          fatherName: body.fatherName,
+          motherName: body.motherName,
+          guardianName: body.guardianName || undefined,
+          fatherPhone: body.fatherPhone || undefined,
+          motherPhone: body.motherPhone || undefined,
+          guardianPhone: body.guardianPhone || undefined,
+          fatherEmail: body.fatherEmail || undefined,
+          motherEmail: body.motherEmail || undefined,
+          guardianEmail: body.guardianEmail || undefined,
+          fatherQualification: body.fatherQualification || undefined,
+          motherQualification: body.motherQualification || undefined,
+          guardianQualification: body.guardianQualification || undefined,
+          fatherOccupation: body.fatherOccupation || undefined,
+          motherOccupation: body.motherOccupation || undefined,
+          guardianOccupation: body.guardianOccupation || undefined,
+          addressLine1: body.addressLine1 || undefined,
+          addressLine2: body.addressLine2 || undefined,
+          city: body.city || undefined,
+          state: body.state || undefined,
+          postalCode: body.postalCode || undefined,
+          emergencyContactName: body.emergencyContactName || undefined,
+          emergencyContactPhone: body.emergencyContactPhone || undefined,
+          emergencyRelationship: body.emergencyRelationship || undefined,
+        },
+        childProfile: {
+          gender: body.childGender || undefined,
+          bloodGroup: body.childBloodGroup || undefined,
+          aadhaarNumber: body.childAadhaar || undefined,
+          ageText: body.childAge || undefined,
+          previousSchool: body.previousSchool || undefined,
+          previousGrade: body.previousGrade || undefined,
+          medicalNotes: body.medicalNotes || undefined,
+          allergies: body.allergies || undefined,
+        },
+        admissionProfile: {
+          preferredStartMonth: body.preferredStartMonth || undefined,
+          schoolVisitStatus: body.schoolVisitStatus || undefined,
+          parentExpectations: body.parentExpectations || undefined,
+          internalNotes: body.notes || undefined,
+          source: "Parent Web Form",
+          feePlanStatus: program ? "Program selected" : "Program pending",
+          portalReady: false,
+          parentSubmittedAt: new Date().toISOString(),
+        },
+        documents: uploadedDocuments.length
+          ? {
+              create: uploadedDocuments,
+            }
+          : undefined,
       },
     });
 
@@ -47,7 +179,14 @@ export async function POST(request: Request) {
       phone: admission.phone,
     });
 
-    return NextResponse.json({ success: true, admissionId: admission.id }, { status: 201 });
+    return NextResponse.json(
+      {
+        success: true,
+        admissionId: admission.id,
+        applicationNumber: admission.applicationNumber,
+      },
+      { status: 201 },
+    );
   } catch (error) {
     console.error(error);
     return NextResponse.json({ success: false, message: "Unable to submit admission" }, { status: 400 });

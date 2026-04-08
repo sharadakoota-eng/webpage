@@ -48,6 +48,71 @@ export async function triggerAdmissionEvent(params: {
   });
 }
 
+export async function triggerParentPortalReadyEvent(params: {
+  admissionId: string;
+  parentName: string;
+  childName: string;
+  phone: string;
+  temporaryPassword?: string;
+}) {
+  await notificationService.dispatch({
+    title: "Parent Portal Ready",
+    message: `${params.parentName} can now access the parent portal for ${params.childName}. Contact: ${params.phone}.${params.temporaryPassword ? ` Temporary password: ${params.temporaryPassword}.` : ""}`,
+    type: NotificationType.ADMISSION,
+    recipientUserIds: await getFrontDeskRecipients(),
+    metadata: { admissionId: params.admissionId, portalReady: true },
+  });
+}
+
+export async function triggerAdmissionApprovedEvent(params: {
+  admissionId: string;
+  parentName: string;
+  childName: string;
+  phone: string;
+}) {
+  await notificationService.dispatch({
+    title: "Admission Approved",
+    message: `${params.parentName}'s admission for ${params.childName} has been approved. Contact: ${params.phone}.`,
+    type: NotificationType.ADMISSION,
+    recipientUserIds: await getFrontDeskRecipients(),
+    metadata: { admissionId: params.admissionId, status: "APPROVED" },
+  });
+}
+
+export async function triggerDocumentRejectedEvent(params: {
+  admissionId: string;
+  documentLabel: string;
+  parentName: string;
+  phone: string;
+  reason?: string;
+}) {
+  await notificationService.dispatch({
+    title: "Admission Document Rejected",
+    message: `${params.documentLabel} for ${params.parentName} needs reupload.${params.reason ? ` Reason: ${params.reason}` : ""} Contact: ${params.phone}.`,
+    type: NotificationType.ADMISSION,
+    recipientUserIds: await getFrontDeskRecipients(),
+    metadata: { admissionId: params.admissionId, documentLabel: params.documentLabel, reason: params.reason ?? null },
+  });
+}
+
+export async function triggerPaymentCreatedEvent(params: {
+  paymentId: string;
+  invoiceNumber: string;
+  parentName: string;
+}) {
+  const template = notificationTemplates.paymentSuccess({
+    invoiceNumber: params.invoiceNumber,
+    parentName: params.parentName,
+  });
+
+  await notificationService.dispatch({
+    ...template,
+    type: NotificationType.PAYMENT,
+    recipientUserIds: await getFrontDeskRecipients(),
+    metadata: { paymentId: params.paymentId, invoiceNumber: params.invoiceNumber },
+  });
+}
+
 export async function triggerVisitBookingEvent(params: {
   bookingId: string;
   parentName: string;

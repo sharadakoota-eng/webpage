@@ -42,6 +42,13 @@ enum AttendanceStatus {
   HALF_DAY
 }
 
+enum TeacherAttendanceStatus {
+  PRESENT
+  ABSENT
+  LEAVE
+  HALF_DAY
+}
+
 enum PaymentStatus {
   PENDING
   SUCCESS
@@ -94,11 +101,27 @@ enum ProgramCategory {
 
 enum DocumentType {
   BIRTH_CERTIFICATE
+  CHILD_AADHAAR
+  FATHER_AADHAAR
+  MOTHER_AADHAAR
   ID_PROOF
   ADDRESS_PROOF
   MEDICAL_RECORD
   PHOTO
+  PREVIOUS_SCHOOL_RECORD
   OTHER
+}
+
+enum ApplicationDocumentStatus {
+  REQUESTED
+  UPLOADED
+  VERIFIED
+  REJECTED
+}
+
+enum HomeworkUpdateAudience {
+  CLASS_UPDATE
+  INDIVIDUAL_NOTE
 }
 
 enum LeaveRequestStatus {
@@ -114,6 +137,7 @@ model User {
   passwordHash   String
   phone          String?
   isActive       Boolean           @default(true)
+  passwordResetRequired Boolean    @default(false)
   roleId         String
   role           Role              @relation(fields: [roleId], references: [id])
   parentProfile  Parent?
@@ -197,6 +221,7 @@ model Teacher {
   classes          TeacherClassMap[]
   homeworkUpdates  HomeworkUpdate[]
   observationNotes StudentObservation[]
+  attendance       TeacherAttendance[]
   user             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
@@ -252,6 +277,8 @@ model Class {
   classTeachers TeacherClassMap[]
   students      Student[]
   attendance    Attendance[]
+  teacherAttendance TeacherAttendance[]
+  homeworkUpdates HomeworkUpdate[]
   announcements Announcement[]
   events        Event[]
   createdAt     DateTime           @default(now())
@@ -337,6 +364,7 @@ model Inquiry {
 model Admission {
   id                String             @id @default(cuid())
   applicationNumber String             @unique
+  shareToken        String?            @unique
   parentId          String?
   studentId         String?
   programId         String?
@@ -346,6 +374,17 @@ model Admission {
   phone             String
   email             String?
   notes             String?            @db.Text
+  reviewNotes       String?            @db.Text
+  submittedByParent Boolean            @default(false)
+  submittedAt       DateTime?
+  approvedAt        DateTime?
+  rejectedAt        DateTime?
+  enrolledAt        DateTime?
+  portalAccessSentAt DateTime?
+  familyProfile     Json?
+  childProfile      Json?
+  admissionProfile  Json?
+  communicationLog  Json?
   status            AdmissionStatus    @default(SUBMITTED)
   parent            Parent?            @relation(fields: [parentId], references: [id])
   student           Student?           @relation(fields: [studentId], references: [id])
@@ -364,8 +403,12 @@ model ApplicationDocument {
   id            String       @id @default(cuid())
   admissionId   String
   documentType  DocumentType
+  status        ApplicationDocumentStatus @default(UPLOADED)
   fileUrl       String
   fileName      String
+  notes         String?      @db.Text
+  verifiedAt    DateTime?
+  requestedAt   DateTime     @default(now())
   admission     Admission    @relation(fields: [admissionId], references: [id], onDelete: Cascade)
   createdAt     DateTime     @default(now())
 
@@ -464,11 +507,17 @@ model HomeworkUpdate {
   title          String
   content        String                  @db.Text
   teacherId      String
+  classId        String?
+  audienceType   HomeworkUpdateAudience  @default(CLASS_UPDATE)
   publishedAt    DateTime                @default(now())
   teacher        Teacher                 @relation(fields: [teacherId], references: [id])
+  class          Class?                  @relation(fields: [classId], references: [id])
   students       HomeworkUpdateStudent[]
   createdAt      DateTime                @default(now())
   updatedAt      DateTime                @updatedAt
+
+  @@index([classId, publishedAt])
+  @@index([audienceType, publishedAt])
 }
 
 model HomeworkUpdateStudent {
@@ -638,4 +687,21 @@ model StudentObservation {
   createdAt    DateTime @default(now())
 
   @@index([studentId, observedAt])
+}
+
+model TeacherAttendance {
+  id          String                  @id @default(cuid())
+  teacherId   String
+  classId     String?
+  date        DateTime
+  status      TeacherAttendanceStatus
+  remarks     String?                 @db.Text
+  teacher     Teacher                 @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  class       Class?                  @relation(fields: [classId], references: [id], onDelete: SetNull)
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+
+  @@unique([teacherId, date])
+  @@index([classId, date])
+  @@index([status, date])
 }

@@ -3,6 +3,8 @@ import { CheckCircle2, FileText, HeartHandshake, School2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHero } from "@/components/sections/page-hero";
 import { AdmissionForm } from "@/components/sections/admission-form";
+import { getAdmissionFormConfig } from "@/lib/admin-config";
+import { prisma } from "@/lib/prisma";
 import admissionsImage from "@/assets/admissions.png";
 import admissionsDetailImage from "@/assets/admissions1.png";
 
@@ -45,7 +47,23 @@ const parentQuestions = [
   "How soon can we expect a response after applying?",
 ];
 
-export default function AdmissionsPage() {
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+export default async function AdmissionsPage() {
+  const [programFees, formConfig] = await Promise.all([
+    prisma.program.findMany({
+      orderBy: { name: "asc" },
+      include: {
+        feeStructures: {
+          orderBy: { createdAt: "desc" },
+          take: 3,
+        },
+      },
+    }),
+    getAdmissionFormConfig(),
+  ]);
+
   return (
     <div className="space-y-8">
       <PageHero
@@ -161,8 +179,47 @@ export default function AdmissionsPage() {
         </div>
       </section>
 
+      <section className="rounded-[2rem] bg-white p-8 shadow-card lg:p-10">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-gold">Current Program Pricing</p>
+            <h2 className="mt-3 font-display text-4xl text-navy">Fee plans visible to families should come directly from the ERP</h2>
+          </div>
+          <p className="max-w-2xl text-sm leading-7 text-navy/70">
+            These pricing notes are controlled by the school office in the admin portal, so admissions, parent portal, and billing remain aligned.
+          </p>
+        </div>
+        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {programFees.map((program) => (
+            <div key={program.id} className="rounded-[1.5rem] bg-cream p-5 shadow-card">
+              <p className="font-display text-2xl text-navy">{program.name}</p>
+              <p className="mt-2 text-sm text-navy/68">{program.ageGroup}</p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {program.feeStructures.length > 0 ? (
+                  program.feeStructures.map((fee) => (
+                    <span key={fee.id} className="rounded-full bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-gold">
+                      {fee.title}: Rs. {fee.amount.toString()}
+                    </span>
+                  ))
+                ) : (
+                  <span className="rounded-full bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-navy/50">
+                    Fee details shared during admission review
+                  </span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
       <div id="admission-form">
-        <AdmissionForm />
+        <AdmissionForm
+          formConfig={formConfig}
+          programs={programFees.map((program) => ({
+            slug: program.slug,
+            title: program.name,
+          }))}
+        />
       </div>
     </div>
   );

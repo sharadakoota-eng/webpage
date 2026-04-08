@@ -8,3 +8,4 @@ coverage
 *.log
 generated
 *.tsbuildinfo
+tmp_admin_video_frames

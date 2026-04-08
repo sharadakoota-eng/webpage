@@ -1,14 +1,11 @@
 import { NextResponse } from "next/server";
-import { getToken } from "next-auth/jwt";
 import type { NextRequest } from "next/server";
+import { verifyPortalToken, ERP_SESSION_COOKIE } from "@/lib/portal-token";
 
 export async function middleware(req: NextRequest) {
-  const token = await getToken({
-    req,
-    secret: process.env.NEXTAUTH_SECRET,
-  });
-
   const pathname = req.nextUrl.pathname;
+  const cookieValue = req.cookies.get(ERP_SESSION_COOKIE)?.value;
+  const token = cookieValue ? await verifyPortalToken(cookieValue).catch(() => null) : null;
 
   if (!token) {
     const loginUrl = new URL("/login", req.nextUrl.origin);
@@ -34,5 +31,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/parent/:path*", "/teacher/:path*"],
+  matcher: ["/admin/:path*", "/parent/:path*", "/teacher/:path*", "/portal"],
 };

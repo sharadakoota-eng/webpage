@@ -1,10 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { Header } from "@/components/layout/header";
-import { Footer } from "@/components/layout/footer";
-import { StickyMobileBar } from "@/components/layout/sticky-mobile-bar";
-import { TopRibbon } from "@/components/layout/top-ribbon";
-import { WhatsAppFloat } from "@/components/layout/whatsapp-float";
+import { AppChrome } from "@/components/layout/app-chrome";
 import { siteConfig } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -16,12 +12,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en">
       <body>
-        <TopRibbon />
-        <Header />
-        <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">{children}</main>
-        <Footer />
-        <WhatsAppFloat />
-        <StickyMobileBar />
+        <AppChrome>{children}</AppChrome>
       </body>
     </html>
   );
