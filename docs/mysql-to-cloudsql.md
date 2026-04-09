@@ -14,7 +14,7 @@
 3. Back up the current MySQL database.
 4. Export the existing schema and data.
 5. Import the dump into Cloud SQL.
-6. Update `DATABASE_URL` and `DIRECT_URL` in Vercel.
+6. Update `DATABASE_URL` and `DIRECT_URL` in `.env.production` and in Vercel.
 7. Run:
 
 ```bash
@@ -46,5 +46,12 @@ DIRECT_URL="mysql://user:password@cloudsql-host:3306/shaarada_koota"
 ```
 
 ## Seed script reuse
+
+For production-like CLI runs, explicitly use production env mode:
+
+```bash
+$env:ERP_ENV="production"
+npm run prisma:seed
+```
 
 The seed script is idempotent for core records and can be reused on staging or fresh environments after adjusting any demo data you do not want in production.

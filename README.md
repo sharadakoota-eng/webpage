@@ -1,6 +1,6 @@
 # Shaarada Koota Montessori Platform
 
-Production-ready, mobile-first website and school management platform scaffold for Shaarada Koota Montessori - A House of Learning.
+Production-ready school website and ERP platform for Shaarada Koota Montessori School.
 
 ## Stack
 
@@ -9,43 +9,47 @@ Production-ready, mobile-first website and school management platform scaffold f
 - Tailwind CSS
 - Prisma
 - MySQL
-- NextAuth credentials-based role login
-- Cloudinary-ready media setup
-- Razorpay-ready payment data model
-- Vercel deployment target
+- Role-based ERP login
+- Razorpay-ready finance flow
 
-## Included modules
+## Environment strategy
 
-### Phase 1
+This project now uses only these real env files:
 
-- Public website
-- Admissions, inquiry, contact, and visit booking flows
-- Gallery, testimonials, events, FAQ, fee information
-- Admin portal shell
-- Lead management data model
-- Event-driven notification architecture
+- `.env.local`
+  Local development only.
+  Uses local MySQL and localhost URLs.
 
-### Phase 2 ready
+- `.env.production`
+  Production-like or live operations only.
+  Uses Railway or another managed MySQL instance and live URLs.
 
-- Parent portal shell
-- Teacher portal shell
-- Students, classes, attendance, homework updates
-- Announcements and records
+- `.env.example`
+  Documentation template only.
+  Contains placeholders and comments.
 
-### Phase 3 ready
+### Not used anymore
 
-- Fee structures
-- Invoices
-- Payments
-- Receipts
-- Leave requests
-- Audit logs and reporting foundations
+These files are intentionally no longer part of runtime loading:
+
+- `.env`
+- `.env.local.example`
+- `.env.production.example`
+
+## How environment loading works
+
+- Local app runtime loads `.env.local`
+- Local Prisma CLI commands load `.env.local`
+- Production app runtime loads `.env.production` only if file-based env loading is needed
+- Production-like seed runs must explicitly use production mode
+- There is no fallback from production to localhost `.env.local`
+- Prisma schema always reads `env("DATABASE_URL")` and `env("DIRECT_URL")`
 
 ## Local setup
 
 1. Install Node.js 20+ and npm.
-2. Create a MySQL database, for example `shaarada_koota_dev`.
-3. Copy `.env.local.example` to `.env.local` and update credentials.
+2. Create a local MySQL database such as `shaarada_koota_dev`.
+3. Fill `.env.local` with your local credentials.
 4. Install dependencies:
 
 ```bash
@@ -58,13 +62,13 @@ npm install
 npx prisma generate
 ```
 
-6. Run migrations:
+6. Push schema to local MySQL:
 
 ```bash
-npx prisma migrate dev --name initial
+npx prisma db push
 ```
 
-7. Seed sample data:
+7. Seed local data:
 
 ```bash
 npm run prisma:seed
@@ -76,12 +80,49 @@ npm run prisma:seed
 npm run dev
 ```
 
+## Production-like or live database setup
+
+1. Fill `.env.production` with Railway or managed MySQL credentials.
+2. Run Prisma against the production database:
+
+```bash
+$env:ERP_ENV="production"
+npx prisma db push
+```
+
+3. Seed production-like data only when you actually want it:
+
+```bash
+$env:ERP_ENV="production"
+npm run prisma:seed
+```
+
+4. Clear the temporary shell override after use:
+
+```bash
+Remove-Item Env:ERP_ENV
+```
+
+## Vercel deployment
+
+Vercel does not read local env files from your machine.
+Set the same production values in the Vercel Environment Variables UI:
+
+- `DATABASE_URL`
+- `DIRECT_URL`
+- `NEXTAUTH_URL`
+- `NEXTAUTH_SECRET`
+- `APP_URL`
+- `ADMIN_EMAIL`
+- `ADMIN_PASSWORD`
+- mail and payment credentials as needed
+
 ## Sample credentials
 
-- Admin: value from `ADMIN_EMAIL`, default `admin@shaaradakoota.com`
-- Password: value from `ADMIN_PASSWORD`, default `ChangeMe123!`
-- Teacher: `teacher@shaaradakoota.com`
-- Parent: `parent@shaaradakoota.com`
+- Admin email: value from `ADMIN_EMAIL`
+- Admin password: value from `ADMIN_PASSWORD`
+
+Teacher and parent accounts are created from the ERP data itself and must exist in the connected database.
 
 ## Project structure
 
@@ -91,18 +132,14 @@ app/
   admin/
   parent/
   teacher/
-  ...public pages
 components/
   layout/
   portal/
   sections/
-  ui/
 lib/
-  auth.ts
-  content.ts
-  notifications/
+  env.ts
+  erp-auth.ts
   prisma.ts
-  site.ts
 prisma/
   schema.prisma
   seed.ts
@@ -113,19 +150,10 @@ docs/
 
 ## Notes
 
-- The UI is intentionally mobile-first with sticky call-to-action support.
-- Environment variables drive all infrastructure-specific values.
-- Prisma is configured for MySQL now and remains compatible with Google Cloud SQL for MySQL later.
-- External notification channels are abstracted so email can go live first and WhatsApp or SMS can be plugged in later.
-
-## What still needs to be run after Node is installed
-
-- `npm install`
-- `npx prisma generate`
-- `npx prisma migrate dev --name initial`
-- `npm run prisma:seed`
-- `npm run dev`
+- Local and production database credentials are now intentionally isolated.
+- The seed script no longer loads both local and generic env files together.
+- If production login fails, verify the production database schema exists and the Vercel environment values match the live database.
 
 ## Windows quick start
 
-See [SETUP-WINDOWS.md](/C:/Users/Srira/OneDrive/Desktop/Shaarada%20Kuuta/SETUP-WINDOWS.md) for a direct setup checklist.
+See [SETUP-WINDOWS.md](/C:/Users/Srira/OneDrive/Desktop/Shaarada%20Kuuta/SETUP-WINDOWS.md).

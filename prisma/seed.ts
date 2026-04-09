@@ -1,5 +1,3 @@
-import fs from "node:fs";
-import path from "node:path";
 import bcrypt from "bcryptjs";
 import {
   AdmissionStatus,
@@ -16,26 +14,24 @@ import {
   RoleType,
   TeacherAttendanceStatus,
 } from "@prisma/client";
+import { loadProjectEnv, type EnvMode } from "@/lib/env";
 
-function loadEnvFile(fileName: string) {
-  const filePath = path.join(process.cwd(), fileName);
-  if (!fs.existsSync(filePath)) return;
-  const fileContents = fs.readFileSync(filePath, "utf8");
-  for (const rawLine of fileContents.split(/\r?\n/)) {
-    const line = rawLine.trim();
-    if (!line || line.startsWith("#") || !line.includes("=")) continue;
-    const [keyPart, ...valueParts] = line.split("=");
-    const key = keyPart.trim();
-    let value = valueParts.join("=").trim();
-    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
-      value = value.slice(1, -1);
-    }
-    if (!process.env[key]) process.env[key] = value;
+function initializeSeedEnvironment() {
+  const mode: EnvMode = process.env.NODE_ENV === "production" ? "production" : "local";
+  const fileName = mode === "production" ? ".env.production" : ".env.local";
+  loadProjectEnv(mode);
+
+  const requiredKeys = ["DATABASE_URL", "NEXTAUTH_SECRET", "APP_URL"] as const;
+  const missingKeys = requiredKeys.filter((key) => !process.env[key]?.trim());
+
+  console.info(`[seed] Using environment source: ${fileName}`);
+
+  if (missingKeys.length > 0) {
+    throw new Error(`[seed] Missing required environment variables: ${missingKeys.join(", ")}`);
   }
 }
 
-loadEnvFile(".env");
-loadEnvFile(".env.local");
+initializeSeedEnvironment();
 
 const prisma = new PrismaClient();
 

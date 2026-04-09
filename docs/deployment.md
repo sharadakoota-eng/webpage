@@ -1,43 +1,63 @@
 # Deployment Guide
 
-## Recommended initial hosting
+## Recommended hosting
 
 - App hosting: Vercel
-- Database: managed MySQL provider or self-managed MySQL VM
+- Database: Railway MySQL or another managed MySQL provider
 - Media: Cloudinary
 - Email: SMTP provider
+
+## Environment rules
+
+This project uses only:
+
+- `.env.local` for local development
+- `.env.production` for production-like or live CLI usage
+- Vercel Environment Variables for deployed production runtime
+
+This project does **not** load `.env`, `.env.local.example`, or `.env.production.example`.
 
 ## Vercel deployment steps
 
 1. Push the repository to GitHub.
 2. Import the project into Vercel.
-3. Set the framework preset to Next.js.
-4. Add environment variables from `.env.production.example`.
-5. Ensure `DATABASE_URL` points to your production MySQL instance.
-6. Run Prisma migrations in CI or manually:
+3. Set the framework to Next.js.
+4. Add production environment variables in Vercel:
+   - `DATABASE_URL`
+   - `DIRECT_URL`
+   - `NEXTAUTH_URL`
+   - `NEXTAUTH_SECRET`
+   - `APP_URL`
+   - `ADMIN_EMAIL`
+   - `ADMIN_PASSWORD`
+   - any mail, media, and Razorpay variables you use
+5. Ensure `DATABASE_URL` points to the live managed MySQL instance.
+6. Push Prisma schema to the production database before testing ERP login:
 
 ```bash
-npx prisma migrate deploy
+$env:ERP_ENV="production"
+npx prisma db push
 ```
 
-7. If desired, run seed data once in production with non-demo content.
+7. Seed only if you intentionally want demo or bootstrap data:
+
+```bash
+$env:ERP_ENV="production"
+npm run prisma:seed
+```
+
+8. Redeploy after any Vercel env changes.
 
 ## MySQL connection notes
 
-- Use standard MySQL connection strings.
-- Keep separate values for `DATABASE_URL` and `DIRECT_URL`.
+- Use the public/external MySQL connection string for local CLI access.
+- Keep `DATABASE_URL` and `DIRECT_URL` aligned.
 - Enable SSL in the connection string if your provider requires it.
-- If using Vercel with an external MySQL provider, confirm the database accepts connections from Vercel regions.
-
-## Storage notes
-
-- Store gallery images, receipts, and documents in Cloudinary or equivalent object storage.
-- Save only the returned URLs and metadata in MySQL.
+- Never let production fall back to localhost credentials.
 
 ## Security notes
 
 - Replace all sample credentials before launch.
 - Use a strong `NEXTAUTH_SECRET`.
-- Limit admin access by role.
-- Add rate limiting to form endpoints before public launch.
-- Add CAPTCHA to inquiry and contact forms for production.
+- Keep `.env.local` and `.env.production` out of source control.
+- Store real production secrets only in Vercel or your secure local env files.

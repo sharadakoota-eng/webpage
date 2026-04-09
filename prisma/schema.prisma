@@ -149,6 +149,7 @@ model User {
   updatedAt      DateTime          @updatedAt
 
   @@index([roleId, isActive])
+  @@map("user")
 }
 
 model Role {
@@ -160,6 +161,8 @@ model Role {
   permissions RolePermission[]
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
+
+  @@map("role")
 }
 
 model Permission {
@@ -169,6 +172,8 @@ model Permission {
   description String?
   roles       RolePermission[]
   createdAt   DateTime         @default(now())
+
+  @@map("permission")
 }
 
 model RolePermission {
@@ -178,6 +183,7 @@ model RolePermission {
   permission   Permission @relation(fields: [permissionId], references: [id])
 
   @@id([roleId, permissionId])
+  @@map("rolepermission")
 }
 
 model Session {
@@ -191,6 +197,7 @@ model Session {
   createdAt    DateTime @default(now())
 
   @@index([userId, expiresAt])
+  @@map("session")
 }
 
 model Parent {
@@ -210,6 +217,8 @@ model Parent {
   user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
+
+  @@map("parent")
 }
 
 model Teacher {
@@ -225,6 +234,8 @@ model Teacher {
   user             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
+
+  @@map("teacher")
 }
 
 model Student {
@@ -252,6 +263,7 @@ model Student {
 
   @@index([currentClassId])
   @@index([firstName, lastName])
+  @@map("student")
 }
 
 model ParentStudentMap {
@@ -265,6 +277,7 @@ model ParentStudentMap {
 
   @@id([parentId, studentId])
   @@index([studentId])
+  @@map("parentstudentmap")
 }
 
 model Class {
@@ -285,6 +298,7 @@ model Class {
   updatedAt     DateTime           @updatedAt
 
   @@index([name, section])
+  @@map("class")
 }
 
 model TeacherClassMap {
@@ -297,6 +311,7 @@ model TeacherClassMap {
 
   @@id([teacherId, classId])
   @@index([classId])
+  @@map("teacherclassmap")
 }
 
 model Program {
@@ -319,6 +334,8 @@ model Program {
   feeStructures  FeeStructure[]
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
+
+  @@map("program")
 }
 
 model Enrollment {
@@ -337,6 +354,7 @@ model Enrollment {
 
   @@index([parentId, programId])
   @@index([studentId, programId])
+  @@map("enrollment")
 }
 
 model Inquiry {
@@ -359,6 +377,7 @@ model Inquiry {
   @@index([status, createdAt])
   @@index([programId])
   @@index([phone])
+  @@map("inquiry")
 }
 
 model Admission {
@@ -397,6 +416,7 @@ model Admission {
   @@index([status, createdAt])
   @@index([parentId])
   @@index([studentId])
+  @@map("admission")
 }
 
 model ApplicationDocument {
@@ -413,6 +433,7 @@ model ApplicationDocument {
   createdAt     DateTime     @default(now())
 
   @@index([admissionId, documentType])
+  @@map("applicationdocument")
 }
 
 model FeeStructure {
@@ -429,6 +450,7 @@ model FeeStructure {
   updatedAt     DateTime   @updatedAt
 
   @@index([programId])
+  @@map("feestructure")
 }
 
 model Invoice {
@@ -449,6 +471,7 @@ model Invoice {
 
   @@index([studentId, status])
   @@index([dueDate])
+  @@map("invoice")
 }
 
 model Payment {
@@ -467,6 +490,7 @@ model Payment {
   updatedAt         DateTime        @updatedAt
 
   @@index([invoiceId, status])
+  @@map("payment")
 }
 
 model Receipt {
@@ -484,6 +508,7 @@ model Receipt {
   createdAt      DateTime @default(now())
 
   @@index([studentId, issuedAt])
+  @@map("receipt")
 }
 
 model Attendance {
@@ -500,6 +525,7 @@ model Attendance {
 
   @@unique([studentId, date])
   @@index([classId, date])
+  @@map("attendance")
 }
 
 model HomeworkUpdate {
@@ -518,6 +544,7 @@ model HomeworkUpdate {
 
   @@index([classId, publishedAt])
   @@index([audienceType, publishedAt])
+  @@map("homeworkupdate")
 }
 
 model HomeworkUpdateStudent {
@@ -527,6 +554,7 @@ model HomeworkUpdateStudent {
   student          Student        @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@id([homeworkUpdateId, studentId])
+  @@map("homeworkupdatestudent")
 }
 
 model Announcement {
@@ -541,6 +569,7 @@ model Announcement {
   updatedAt     DateTime @updatedAt
 
   @@index([isPublished, createdAt])
+  @@map("announcement")
 }
 
 model Event {
@@ -557,6 +586,7 @@ model Event {
   updatedAt     DateTime @updatedAt
 
   @@index([startsAt, isPublished])
+  @@map("event")
 }
 
 model GalleryItem {
@@ -571,6 +601,7 @@ model GalleryItem {
   updatedAt     DateTime @updatedAt
 
   @@index([isPublished, sortOrder])
+  @@map("galleryitem")
 }
 
 model Testimonial {
@@ -585,6 +616,7 @@ model Testimonial {
   updatedAt     DateTime @updatedAt
 
   @@index([isFeatured, isPublished])
+  @@map("testimonial")
 }
 
 model Notification {
@@ -608,6 +640,7 @@ model Notification {
 
   @@index([recipientUserId, status])
   @@index([type, channel, createdAt])
+  @@map("notification")
 }
 
 model ContactSubmission {
@@ -619,6 +652,8 @@ model ContactSubmission {
   message       String   @db.Text
   isImportant   Boolean  @default(false)
   createdAt     DateTime @default(now())
+
+  @@map("contactsubmission")
 }
 
 model VisitBooking {
@@ -633,6 +668,7 @@ model VisitBooking {
   updatedAt      DateTime @updatedAt
 
   @@index([visitDate])
+  @@map("visitbooking")
 }
 
 model AuditLog {
@@ -648,6 +684,7 @@ model AuditLog {
 
   @@index([userId, createdAt])
   @@index([entityType, entityId])
+  @@map("auditlog")
 }
 
 model Setting {
@@ -657,6 +694,8 @@ model Setting {
   description  String?
   updatedAt    DateTime @updatedAt
   createdAt    DateTime @default(now())
+
+  @@map("setting")
 }
 
 model LeaveRequest {
@@ -673,6 +712,7 @@ model LeaveRequest {
   updatedAt     DateTime            @updatedAt
 
   @@index([studentId, status])
+  @@map("leaverequest")
 }
 
 model StudentObservation {
@@ -687,6 +727,7 @@ model StudentObservation {
   createdAt    DateTime @default(now())
 
   @@index([studentId, observedAt])
+  @@map("studentobservation")
 }
 
 model TeacherAttendance {
@@ -704,4 +745,5 @@ model TeacherAttendance {
   @@unique([teacherId, date])
   @@index([classId, date])
   @@index([status, date])
+  @@map("teacherattendance")
 }
