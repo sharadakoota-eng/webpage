@@ -4,7 +4,7 @@ import { Prisma } from "@prisma/client";
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import { prisma } from "@/lib/prisma";
 
-const logoBytesPromise = fs.readFile(path.join(process.cwd(), "assets", "logo.png"));
+const logoBytesPromise = fs.readFile(path.join(process.cwd(), "assets", "logo.png")).catch(() => null);
 
 type InvoiceDocumentView = {
   invoiceNumber: string;
@@ -19,6 +19,9 @@ type InvoiceDocumentView = {
   parentPhone?: string | null;
   classLabel?: string;
   programName?: string;
+  paymentMethod?: string | null;
+  paymentReference?: string | null;
+  paidOn?: Date | null;
   lineItems: Array<{
     title: string;
     description?: string | null;
@@ -109,6 +112,7 @@ export async function getInvoiceDocumentData(invoiceId: string): Promise<Invoice
       feeStructure: {
         include: { program: true },
       },
+      payments: true,
       student: {
         include: {
           currentClass: true,
@@ -138,6 +142,17 @@ export async function getInvoiceDocumentData(invoiceId: string): Promise<Invoice
     ? `${invoice.student.currentClass.name}${invoice.student.currentClass.section ? ` - ${invoice.student.currentClass.section}` : ""}`
     : undefined;
   const lineItems = normalizeLineItems(invoice.lineItems, invoice.feeStructure?.title ?? "School Fee", Number(invoice.amount));
+  const latestPayment = invoice.payments
+    .filter((entry) => entry.status === "SUCCESS")
+    .sort((a, b) => {
+      const aDate = a.paidAt ?? a.createdAt;
+      const bDate = b.paidAt ?? b.createdAt;
+      return bDate.getTime() - aDate.getTime();
+    })[0];
+  const gatewayReference =
+    latestPayment?.gatewayPayload && typeof latestPayment.gatewayPayload === "object" && !Array.isArray(latestPayment.gatewayPayload)
+      ? (latestPayment.gatewayPayload as Record<string, unknown>).reference
+      : null;
 
   return {
     invoiceNumber: invoice.invoiceNumber,
@@ -152,6 +167,9 @@ export async function getInvoiceDocumentData(invoiceId: string): Promise<Invoice
     parentPhone: parent.phone,
     classLabel,
     programName: getProgramName(invoice, invoice.lineItems),
+    paymentMethod: latestPayment?.method ?? null,
+    paymentReference: (typeof gatewayReference === "string" ? gatewayReference : null) ?? latestPayment?.externalReference ?? null,
+    paidOn: latestPayment?.paidAt ?? null,
     lineItems,
   };
 }
@@ -197,6 +215,11 @@ export async function getReceiptDocumentData(receiptId: string): Promise<Receipt
     ? `${receipt.student.currentClass.name}${receipt.student.currentClass.section ? ` - ${receipt.student.currentClass.section}` : ""}`
     : undefined;
 
+  const gatewayReference =
+    receipt.payment?.gatewayPayload && typeof receipt.payment.gatewayPayload === "object" && !Array.isArray(receipt.payment.gatewayPayload)
+      ? (receipt.payment.gatewayPayload as Record<string, unknown>).reference
+      : null;
+
   return {
     receiptNumber: receipt.receiptNumber,
     issuedOn: receipt.issuedAt,
@@ -214,13 +237,14 @@ export async function getReceiptDocumentData(receiptId: string): Promise<Receipt
     ),
     invoiceNumber: receipt.invoice?.invoiceNumber,
     paymentMethod: receipt.payment?.method ?? null,
-    paymentReference: receipt.payment?.externalReference ?? null,
+    paymentReference: (typeof gatewayReference === "string" ? gatewayReference : null) ?? receipt.payment?.externalReference ?? null,
     paidOn: receipt.payment?.paidAt ?? receipt.issuedAt,
   };
 }
 
 async function embedBrandAssets(pdf: PDFDocument) {
-  const logo = await pdf.embedPng(await logoBytesPromise);
+  const logoBytes = await logoBytesPromise;
+  const logo = logoBytes ? await pdf.embedPng(logoBytes) : null;
   const fontRegular = await pdf.embedFont(StandardFonts.Helvetica);
   const fontBold = await pdf.embedFont(StandardFonts.HelveticaBold);
   return { logo, fontRegular, fontBold };
@@ -238,12 +262,24 @@ function drawHeader(page: PDFPage, assets: Awaited<ReturnType<typeof embedBrandA
     color: rgb(1, 1, 1),
   });
 
-  page.drawImage(assets.logo, {
-    x: 48,
-    y: height - 96,
-    width: 48,
-    height: 48,
-  });
+  if (assets.logo) {
+    page.drawImage(assets.logo, {
+      x: 48,
+      y: height - 96,
+      width: 48,
+      height: 48,
+    });
+  } else {
+    page.drawRectangle({
+      x: 48,
+      y: height - 96,
+      width: 48,
+      height: 48,
+      borderColor: rgb(0.9, 0.84, 0.71),
+      borderWidth: 1,
+      color: rgb(0.98, 0.97, 0.94),
+    });
+  }
 
   page.drawText("SHARADA KOOTA MONTESSORI SCHOOL", {
     x: 110,
@@ -554,33 +590,49 @@ export async function buildInvoicePdf(data: InvoiceDocumentView) {
     total: data.amount,
   });
 
-  page.drawRectangle({
-    x: 36,
-    y: 134,
-    width: 523,
-    height: 72,
-    borderColor: rgb(0.9, 0.84, 0.71),
-    borderWidth: 1,
-  });
-  page.drawText("Payment Instructions", {
-    x: 50,
-    y: 188,
-    size: 11,
-    font: assets.fontBold,
-    color: rgb(0.82, 0.61, 0.07),
-  });
-  page.drawText(
-    "Please complete the payment on or before the due date. Online and school-office verified cash payments will reflect in both the parent portal and the admin finance desk.",
-    {
+  if (data.paymentMethod || data.paidOn) {
+    drawSectionCard({
+      page,
+      title: "Payment Summary",
+      x: 36,
+      y: 190,
+      width: 523,
+      assets,
+      rows: [
+        { label: "Payment Mode", value: data.paymentMethod ?? "School verified payment" },
+        { label: "Transaction / Reference", value: data.paymentReference ?? "Not provided" },
+        { label: "Paid On", value: formatDate(data.paidOn ?? undefined) },
+      ],
+    });
+  } else {
+    page.drawRectangle({
+      x: 36,
+      y: 134,
+      width: 523,
+      height: 72,
+      borderColor: rgb(0.9, 0.84, 0.71),
+      borderWidth: 1,
+    });
+    page.drawText("Payment Instructions", {
       x: 50,
-      y: 164,
-      size: 9.5,
-      font: assets.fontRegular,
-      color: rgb(0.07, 0.16, 0.29),
-      maxWidth: 495,
-      lineHeight: 13,
-    },
-  );
+      y: 188,
+      size: 11,
+      font: assets.fontBold,
+      color: rgb(0.82, 0.61, 0.07),
+    });
+    page.drawText(
+      "Please complete the payment on or before the due date. Online and school-office verified cash payments will reflect in both the parent portal and the admin finance desk.",
+      {
+        x: 50,
+        y: 164,
+        size: 9.5,
+        font: assets.fontRegular,
+        color: rgb(0.07, 0.16, 0.29),
+        maxWidth: 495,
+        lineHeight: 13,
+      },
+    );
+  }
 
   drawFooter(page, assets, 1, 1);
   return await pdf.save();

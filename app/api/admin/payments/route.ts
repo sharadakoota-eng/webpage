@@ -13,12 +13,16 @@ const payloadSchema = z.discriminatedUnion("action", [
     amount: z.coerce.number().positive(),
     dueDate: z.string().optional().or(z.literal("")),
     programId: z.string().optional().or(z.literal("")),
+    paymentStatus: z.enum(["PAID", "DUE"]).optional(),
+    paymentMethod: z.string().optional(),
+    paymentReference: z.string().optional().or(z.literal("")),
   }),
   z.object({
     action: z.literal("recordCashPayment"),
     invoiceId: z.string().min(1),
     amount: z.coerce.number().positive().optional(),
     reference: z.string().optional().or(z.literal("")),
+    method: z.string().optional(),
   }),
 ]);
 
@@ -32,8 +36,8 @@ export async function POST(request: Request) {
     const payload = payloadSchema.parse(await request.json());
 
     if (payload.action === "createManualInvoice") {
-      const invoice = await prisma.$transaction(async (tx) =>
-        createManualInvoice({
+      const invoice = await prisma.$transaction(async (tx) => {
+        const created = await createManualInvoice({
           tx,
           studentId: payload.studentId,
           title: payload.title,
@@ -41,8 +45,23 @@ export async function POST(request: Request) {
           dueDate: payload.dueDate ? new Date(payload.dueDate) : undefined,
           programId: payload.programId || undefined,
           createdBy: "admin_manual",
-        }),
-      );
+          metadata: {
+            invoiceType: "MANUAL",
+          },
+        });
+
+        if (payload.paymentStatus === "PAID") {
+          await recordCashPayment({
+            tx,
+            invoiceId: created.id,
+            amount: payload.amount,
+            reference: payload.paymentReference || undefined,
+            method: payload.paymentMethod || "CASH",
+          });
+        }
+
+        return created;
+      });
 
       return NextResponse.json({ success: true, invoiceId: invoice.id, message: "Manual invoice created successfully." });
     }
@@ -61,6 +80,7 @@ export async function POST(request: Request) {
         invoiceId: payload.invoiceId,
         amount: payload.amount ?? Number(invoice.amount),
         reference: payload.reference || undefined,
+        method: payload.method || "CASH",
       }),
     );
 

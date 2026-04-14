@@ -1,13 +1,8 @@
-import fs from "node:fs/promises";
-import path from "node:path";
 import { ApplicationDocumentStatus, DocumentType, RoleType } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { requirePortalRole } from "@/lib/erp-auth";
 import { prisma } from "@/lib/prisma";
-
-function sanitizeSegment(value: string) {
-  return value.replace(/[^a-zA-Z0-9._-]/g, "-");
-}
+import { storeAdmissionUpload } from "@/lib/admission-uploads";
 
 export async function POST(
   request: Request,
@@ -49,22 +44,19 @@ export async function POST(
     }
 
     const resolvedDocumentType = existingDocument?.documentType ?? (documentType as DocumentType);
-    const uploadDirectory = path.join(process.cwd(), "public", "uploads", "admissions", admission.applicationNumber);
-    await fs.mkdir(uploadDirectory, { recursive: true });
-
-    const ext = path.extname(file.name) || ".bin";
-    const fileName = `${resolvedDocumentType.toLowerCase()}-${Date.now()}-${sanitizeSegment(path.basename(file.name, ext))}${ext}`;
-    const targetPath = path.join(uploadDirectory, fileName);
-    const arrayBuffer = await file.arrayBuffer();
-    await fs.writeFile(targetPath, Buffer.from(arrayBuffer));
+    const stored = await storeAdmissionUpload({
+      file,
+      applicationNumber: admission.applicationNumber,
+      documentKey: resolvedDocumentType.toLowerCase(),
+    });
 
     if (existingDocument) {
       await prisma.applicationDocument.update({
         where: { id: existingDocument.id },
         data: {
           status: ApplicationDocumentStatus.UPLOADED,
-          fileName: file.name,
-          fileUrl: `/uploads/admissions/${admission.applicationNumber}/${fileName}`,
+          fileName: stored.fileName,
+          fileUrl: stored.fileUrl,
           verifiedAt: null,
           notes: "Replacement file uploaded for review.",
         },
@@ -75,8 +67,8 @@ export async function POST(
           admissionId,
           documentType: resolvedDocumentType,
           status: ApplicationDocumentStatus.UPLOADED,
-          fileName: file.name,
-          fileUrl: `/uploads/admissions/${admission.applicationNumber}/${fileName}`,
+          fileName: stored.fileName,
+          fileUrl: stored.fileUrl,
           notes: "Document uploaded from admission record.",
         },
       });

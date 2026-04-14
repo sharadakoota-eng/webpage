@@ -23,9 +23,11 @@ export function TeacherUpdateWorkbench({ classes }: TeacherUpdateWorkbenchProps)
   const [selectedClassId, setSelectedClassId] = useState(classes[0]?.id ?? "");
   const [classUpdateTitle, setClassUpdateTitle] = useState("Weekly classroom update");
   const [classUpdateContent, setClassUpdateContent] = useState("");
+  const [classAttachment, setClassAttachment] = useState<File | null>(null);
   const [studentIds, setStudentIds] = useState<string[]>([]);
   const [individualTitle, setIndividualTitle] = useState("Individual parent note");
   const [individualContent, setIndividualContent] = useState("");
+  const [individualAttachment, setIndividualAttachment] = useState<File | null>(null);
   const [observationStudentId, setObservationStudentId] = useState(classes[0]?.students[0]?.id ?? "");
   const [observationTitle, setObservationTitle] = useState("Weekly performance observation");
   const [observationContent, setObservationContent] = useState("");
@@ -47,23 +49,24 @@ export function TeacherUpdateWorkbench({ classes }: TeacherUpdateWorkbenchProps)
 
   async function submitClassUpdate() {
     setFeedback("");
-    const payload = {
-      action: "createClassUpdate",
-      classId: selectedClass?.id,
-      title: classUpdateTitle,
-      content: classUpdateContent,
-    };
-
     startTransition(async () => {
+      const formData = new FormData();
+      formData.append("action", "createClassUpdate");
+      formData.append("classId", selectedClass?.id ?? "");
+      formData.append("title", classUpdateTitle);
+      formData.append("content", classUpdateContent);
+      if (classAttachment) {
+        formData.append("attachment", classAttachment);
+      }
       const response = await fetch("/api/teacher/updates", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: formData,
       });
       const result = (await response.json()) as { success?: boolean; message?: string };
       setFeedback(result.message ?? "Unable to save weekly update.");
       if (response.ok && result.success) {
         setClassUpdateContent("");
+        setClassAttachment(null);
         router.refresh();
       }
     });
@@ -72,22 +75,25 @@ export function TeacherUpdateWorkbench({ classes }: TeacherUpdateWorkbenchProps)
   async function submitIndividualNote() {
     setFeedback("");
     startTransition(async () => {
+      const formData = new FormData();
+      formData.append("action", "createIndividualNote");
+      formData.append("classId", selectedClass?.id ?? "");
+      formData.append("title", individualTitle);
+      formData.append("content", individualContent);
+      formData.append("studentIds", studentIds.join(","));
+      if (individualAttachment) {
+        formData.append("attachment", individualAttachment);
+      }
       const response = await fetch("/api/teacher/updates", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "createIndividualNote",
-          classId: selectedClass?.id,
-          title: individualTitle,
-          content: individualContent,
-          studentIds,
-        }),
+        body: formData,
       });
       const result = (await response.json()) as { success?: boolean; message?: string };
       setFeedback(result.message ?? "Unable to save individual note.");
       if (response.ok && result.success) {
         setIndividualContent("");
         setStudentIds([]);
+        setIndividualAttachment(null);
         router.refresh();
       }
     });
@@ -149,6 +155,11 @@ export function TeacherUpdateWorkbench({ classes }: TeacherUpdateWorkbenchProps)
             placeholder="Share homework, activity highlights, or what the class is learning this week."
             className="min-h-[150px] rounded-[1.2rem] border border-navy/10 px-4 py-3 text-sm text-navy"
           />
+          <input
+            type="file"
+            onChange={(event) => setClassAttachment(event.target.files?.[0] ?? null)}
+            className="text-xs text-navy/60 file:mr-3 file:rounded-full file:border-0 file:bg-cream file:px-3 file:py-2 file:text-xs file:font-semibold file:text-gold"
+          />
 
           <button
             type="button"
@@ -175,6 +186,11 @@ export function TeacherUpdateWorkbench({ classes }: TeacherUpdateWorkbenchProps)
             onChange={(event) => setIndividualContent(event.target.value)}
             placeholder="Example: showed stronger focus during language circle and participated confidently in group activity."
             className="min-h-[180px] rounded-[1.2rem] border border-navy/10 px-4 py-3 text-sm text-navy"
+          />
+          <input
+            type="file"
+            onChange={(event) => setIndividualAttachment(event.target.files?.[0] ?? null)}
+            className="text-xs text-navy/60 file:mr-3 file:rounded-full file:border-0 file:bg-cream file:px-3 file:py-2 file:text-xs file:font-semibold file:text-gold"
           />
           <div className="rounded-[1.4rem] bg-cream px-4 py-4">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gold">Selected Students</p>

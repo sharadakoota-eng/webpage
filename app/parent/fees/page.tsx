@@ -2,6 +2,7 @@ import { InvoiceStatus, PaymentStatus } from "@prisma/client";
 import { getPortalSession } from "@/lib/erp-auth";
 import { getParentPortalData } from "@/lib/erp-data";
 import { DocumentDownloadButton } from "@/components/portal/document-download-button";
+import { OfflinePaymentUploader } from "@/components/portal/offline-payment-uploader";
 import { RazorpayPaymentButton } from "@/components/portal/razorpay-payment-button";
 
 export const dynamic = "force-dynamic";
@@ -29,7 +30,10 @@ export default async function ParentFeesPage() {
               <div key={fee.id} className="rounded-[1.35rem] bg-cream px-5 py-4 shadow-card">
                 <p className="text-xs uppercase tracking-[0.2em] text-navy/45">{fee.frequency}</p>
                 <p className="mt-2 text-sm font-semibold text-navy">{fee.title}</p>
-                <p className="mt-2 text-sm text-navy/72">Rs. {fee.amount.toString()}</p>
+                <p className="mt-2 text-sm text-navy/72">
+                  Rs. {fee.amount.toString()}
+                  {fee.taxPercentage ? ` + ${fee.taxPercentage.toString()}% GST` : ""}
+                </p>
               </div>
             ))
           ) : (
@@ -46,6 +50,19 @@ export default async function ParentFeesPage() {
           {invoices.length > 0 ? (
             invoices.map((invoice) => {
               const actionablePayments = invoice.payments.filter((payment) => payment.status !== PaymentStatus.FAILED);
+              const lastPayment = [...invoice.payments]
+                .filter((payment) => payment.status === PaymentStatus.SUCCESS)
+                .sort((a, b) => {
+                  const aDate = a.paidAt ?? a.createdAt;
+                  const bDate = b.paidAt ?? b.createdAt;
+                  return bDate.getTime() - aDate.getTime();
+                })[0];
+              const lastPaymentDate = lastPayment?.paidAt ?? lastPayment?.createdAt;
+              const lineItems = invoice.lineItems as Record<string, unknown> | null;
+              const installmentLabel =
+                typeof lineItems?.invoiceType === "string" && lineItems.invoiceType === "PROGRAM_INSTALLMENT"
+                  ? `Installment ${lineItems.installmentIndex ?? ""} of ${lineItems.installmentCount ?? ""}`.trim()
+                  : null;
               return (
                 <div key={invoice.id} className="rounded-[1.4rem] border border-navy/10 px-5 py-4">
                   <p className="font-semibold text-navy">{invoice.invoiceNumber}</p>
@@ -55,6 +72,15 @@ export default async function ParentFeesPage() {
                   <p className="mt-2 text-sm leading-7 text-navy/72">
                     Rs. {invoice.amount.toString()} | {invoice.status.replaceAll("_", " ")}
                   </p>
+                  {lastPayment ? (
+                    <p className="mt-2 text-xs uppercase tracking-[0.18em] text-navy/50">
+                      Last payment {lastPayment.method ?? "Offline"} ·{" "}
+                      {lastPaymentDate
+                        ? new Intl.DateTimeFormat("en-IN", { day: "2-digit", month: "short", year: "numeric" }).format(lastPaymentDate)
+                        : "Date pending"}
+                    </p>
+                  ) : null}
+                  {installmentLabel ? <p className="mt-1 text-xs uppercase tracking-[0.18em] text-navy/50">{installmentLabel}</p> : null}
                   <div className="mt-4 flex flex-wrap gap-3">
                     <DocumentDownloadButton
                       href={`/api/parent/invoices/${invoice.id}/pdf`}
@@ -71,7 +97,7 @@ export default async function ParentFeesPage() {
                       </DocumentDownloadButton>
                     ) : null}
                   </div>
-                  {actionablePayments.length > 0 ? (
+                  {actionablePayments.length > 0 && invoice.status !== InvoiceStatus.PAID ? (
                     <p className="mt-2 text-xs uppercase tracking-[0.18em] text-[#b45309]">
                       Payment submitted. Waiting for school verification.
                     </p>
@@ -80,6 +106,9 @@ export default async function ParentFeesPage() {
                     <div className="mt-4">
                       <RazorpayPaymentButton invoiceId={invoice.id} label="Pay with Razorpay" />
                     </div>
+                  ) : null}
+                  {invoice.status !== InvoiceStatus.PAID ? (
+                    <OfflinePaymentUploader invoiceId={invoice.id} />
                   ) : null}
                 </div>
               );

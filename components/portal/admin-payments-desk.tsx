@@ -33,11 +33,15 @@ export function AdminPaymentsDesk({ students, programs, invoices }: AdminPayment
     title: "Summer Camp Activity",
     amount: "",
     dueDate: "",
+    paymentStatus: "DUE",
+    paymentMethod: "CASH",
+    paymentReference: "",
   });
   const [cashPayment, setCashPayment] = useState({
     invoiceId: invoices[0]?.id ?? "",
     amount: "",
     reference: "",
+    method: "CASH",
   });
 
   function postAction(payload: Record<string, unknown>, successMessage: string) {
@@ -56,10 +60,18 @@ export function AdminPaymentsDesk({ students, programs, invoices }: AdminPayment
 
       setMessage(result.message ?? successMessage);
       if (payload.action === "createManualInvoice") {
-        setManualInvoice((current) => ({ ...current, title: "Summer Camp Activity", amount: "", dueDate: "" }));
+        setManualInvoice((current) => ({
+          ...current,
+          title: "Summer Camp Activity",
+          amount: "",
+          dueDate: "",
+          paymentStatus: "DUE",
+          paymentMethod: "CASH",
+          paymentReference: "",
+        }));
       }
       if (payload.action === "recordCashPayment") {
-        setCashPayment((current) => ({ ...current, amount: "", reference: "" }));
+        setCashPayment((current) => ({ ...current, amount: "", reference: "", method: "CASH" }));
       }
       router.refresh();
     });
@@ -71,8 +83,8 @@ export function AdminPaymentsDesk({ students, programs, invoices }: AdminPayment
   return (
     <section className="grid gap-6 xl:grid-cols-2">
       <div className="rounded-[2rem] bg-white p-8 shadow-card">
-        <p className="text-sm font-semibold uppercase tracking-[0.24em] text-gold">Manual Invoice Desk</p>
-        <h2 className="mt-2 font-display text-3xl text-navy">Create summer camp or special activity invoices</h2>
+        <p className="text-sm font-semibold uppercase tracking-[0.24em] text-gold">Summer Camp Invoices</p>
+        <h2 className="mt-2 font-display text-3xl text-navy">Create a manual invoice in one step</h2>
         <p className="mt-3 text-sm leading-7 text-navy/68">
           Summer camp and ad-hoc activities should not depend on recurring program fee rules. Create them manually here.
         </p>
@@ -131,6 +143,36 @@ export function AdminPaymentsDesk({ students, programs, invoices }: AdminPayment
               className="rounded-2xl border border-navy/10 px-4 py-3"
             />
           </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <select
+              value={manualInvoice.paymentStatus}
+              onChange={(event) => setManualInvoice((current) => ({ ...current, paymentStatus: event.target.value }))}
+              className="rounded-2xl border border-navy/10 px-4 py-3 text-sm"
+            >
+              <option value="DUE">Mark as not paid</option>
+              <option value="PAID">Mark as paid now</option>
+            </select>
+            <select
+              value={manualInvoice.paymentMethod}
+              onChange={(event) => setManualInvoice((current) => ({ ...current, paymentMethod: event.target.value }))}
+              className="rounded-2xl border border-navy/10 px-4 py-3 text-sm"
+              disabled={manualInvoice.paymentStatus !== "PAID"}
+            >
+              <option value="CASH">Cash</option>
+              <option value="UPI">UPI</option>
+              <option value="NEFT">NEFT</option>
+              <option value="CARD">Card</option>
+              <option value="BANK_TRANSFER">Bank transfer</option>
+            </select>
+          </div>
+          {manualInvoice.paymentStatus === "PAID" ? (
+            <input
+              value={manualInvoice.paymentReference}
+              onChange={(event) => setManualInvoice((current) => ({ ...current, paymentReference: event.target.value }))}
+              placeholder="Payment reference / UPI / NEFT note"
+              className="rounded-2xl border border-navy/10 px-4 py-3"
+            />
+          ) : null}
         </div>
 
         <button
@@ -145,6 +187,9 @@ export function AdminPaymentsDesk({ students, programs, invoices }: AdminPayment
                 title: manualInvoice.title,
                 amount: Number(manualInvoice.amount),
                 dueDate: manualInvoice.dueDate,
+                paymentStatus: manualInvoice.paymentStatus,
+                paymentMethod: manualInvoice.paymentMethod,
+                paymentReference: manualInvoice.paymentReference,
               },
               "Manual invoice created successfully.",
             )
@@ -156,10 +201,10 @@ export function AdminPaymentsDesk({ students, programs, invoices }: AdminPayment
       </div>
 
       <div className="rounded-[2rem] bg-white p-8 shadow-card">
-        <p className="text-sm font-semibold uppercase tracking-[0.24em] text-gold">Cash Payment Approval</p>
-        <h2 className="mt-2 font-display text-3xl text-navy">Record manual cash collections</h2>
+        <p className="text-sm font-semibold uppercase tracking-[0.24em] text-gold">Manual Payment Verification</p>
+        <h2 className="mt-2 font-display text-3xl text-navy">Record offline payments</h2>
         <p className="mt-3 text-sm leading-7 text-navy/68">
-          If a parent pays offline, admin can mark the amount here and release the receipt without using Razorpay.
+          If a parent pays offline (cash, UPI, NEFT, card), admin can mark it here and release the receipt.
         </p>
 
         <div className="mt-6 grid gap-4">
@@ -186,6 +231,17 @@ export function AdminPaymentsDesk({ students, programs, invoices }: AdminPayment
             placeholder="Cash note / receipt reference"
             className="rounded-2xl border border-navy/10 px-4 py-3"
           />
+          <select
+            value={cashPayment.method}
+            onChange={(event) => setCashPayment((current) => ({ ...current, method: event.target.value }))}
+            className="rounded-2xl border border-navy/10 px-4 py-3 text-sm"
+          >
+            <option value="CASH">Cash</option>
+            <option value="UPI">UPI</option>
+            <option value="NEFT">NEFT</option>
+            <option value="CARD">Card</option>
+            <option value="BANK_TRANSFER">Bank transfer</option>
+          </select>
         </div>
 
         <button
@@ -198,6 +254,7 @@ export function AdminPaymentsDesk({ students, programs, invoices }: AdminPayment
                 invoiceId: cashPayment.invoiceId,
                 amount: cashPayment.amount ? Number(cashPayment.amount) : undefined,
                 reference: cashPayment.reference,
+                method: cashPayment.method,
               },
               "Cash payment recorded successfully.",
             )

@@ -1,13 +1,8 @@
-import fs from "node:fs/promises";
-import path from "node:path";
 import { AdmissionStatus, ApplicationDocumentStatus, RoleType } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { requirePortalRole } from "@/lib/erp-auth";
 import { prisma } from "@/lib/prisma";
-
-function sanitizeSegment(value: string) {
-  return value.replace(/[^a-zA-Z0-9._-]/g, "-");
-}
+import { storeAdmissionUpload } from "@/lib/admission-uploads";
 
 export async function PATCH(
   request: Request,
@@ -59,13 +54,11 @@ export async function PATCH(
       return NextResponse.json({ success: false, message: "Only rejected documents can be reuploaded from the parent portal." }, { status: 400 });
     }
 
-    const uploadDirectory = path.join(process.cwd(), "public", "uploads", "admissions", document.admission.applicationNumber);
-    await fs.mkdir(uploadDirectory, { recursive: true });
-    const ext = path.extname(file.name) || ".bin";
-    const fileName = `${document.documentType.toLowerCase()}-${Date.now()}-${sanitizeSegment(path.basename(file.name, ext))}${ext}`;
-    const targetPath = path.join(uploadDirectory, fileName);
-    const arrayBuffer = await file.arrayBuffer();
-    await fs.writeFile(targetPath, Buffer.from(arrayBuffer));
+    const stored = await storeAdmissionUpload({
+      file,
+      applicationNumber: document.admission.applicationNumber,
+      documentKey: document.documentType.toLowerCase(),
+    });
 
     await prisma.applicationDocument.update({
       where: { id: document.id },
@@ -73,8 +66,8 @@ export async function PATCH(
         status: ApplicationDocumentStatus.UPLOADED,
         notes: null,
         verifiedAt: null,
-        fileName: file.name,
-        fileUrl: `/uploads/admissions/${document.admission.applicationNumber}/${fileName}`,
+        fileName: stored.fileName,
+        fileUrl: stored.fileUrl,
       },
     });
 

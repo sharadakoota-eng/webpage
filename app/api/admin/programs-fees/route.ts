@@ -15,6 +15,13 @@ const payloadSchema = z.discriminatedUnion("action", [
     description: z.string().optional().or(z.literal("")),
   }),
   z.object({
+    action: z.literal("createProgramCost"),
+    programId: z.string().min(1),
+    title: z.string().min(2),
+    amount: z.coerce.number().positive(),
+    description: z.string().optional().or(z.literal("")),
+  }),
+  z.object({
     action: z.literal("toggleProgramVisibility"),
     programId: z.string().min(1),
     isPublished: z.boolean(),
@@ -34,6 +41,19 @@ export async function POST(request: Request) {
       await prisma.program.update({
         where: { id: payload.programId },
         data: { isPublished: payload.isPublished },
+      });
+
+      return NextResponse.json({ success: true });
+    }
+
+    if (payload.action === "createProgramCost") {
+      await prisma.programCost.create({
+        data: {
+          programId: payload.programId,
+          title: payload.title,
+          amount: payload.amount,
+          description: payload.description || undefined,
+        },
       });
 
       return NextResponse.json({ success: true });

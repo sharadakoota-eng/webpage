@@ -99,6 +99,11 @@ enum ProgramCategory {
   LANGUAGE
 }
 
+enum ProgramCostType {
+  SALARY
+  OTHER
+}
+
 enum DocumentType {
   BIRTH_CERTIFICATE
   CHILD_AADHAAR
@@ -332,10 +337,26 @@ model Program {
   inquiries      Inquiry[]
   admissions     Admission[]
   feeStructures  FeeStructure[]
+  programCosts   ProgramCost[]
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
 
   @@map("program")
+}
+
+model ProgramCost {
+  id          String          @id @default(cuid())
+  programId   String
+  title       String
+  amount      Decimal         @db.Decimal(10, 2)
+  costType    ProgramCostType @default(SALARY)
+  description String?         @db.Text
+  program     Program         @relation(fields: [programId], references: [id])
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([programId])
+  @@map("programcost")
 }
 
 model Enrollment {
@@ -535,6 +556,8 @@ model HomeworkUpdate {
   teacherId      String
   classId        String?
   audienceType   HomeworkUpdateAudience  @default(CLASS_UPDATE)
+  attachmentUrl  String?
+  attachmentName String?
   publishedAt    DateTime                @default(now())
   teacher        Teacher                 @relation(fields: [teacherId], references: [id])
   class          Class?                  @relation(fields: [classId], references: [id])

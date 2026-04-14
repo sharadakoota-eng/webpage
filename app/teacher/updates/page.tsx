@@ -39,6 +39,11 @@ export default async function TeacherUpdatesPage() {
                   {update.class ? `${update.class.name}${update.class.section ? ` - ${update.class.section}` : ""}` : "Assigned class"}
                 </p>
                 <p className="mt-2 text-sm leading-7 text-navy/72">{update.content}</p>
+                {update.attachmentUrl ? (
+                  <a href={update.attachmentUrl} target="_blank" className="mt-3 inline-flex text-xs font-semibold uppercase tracking-[0.18em] text-gold">
+                    View attachment
+                  </a>
+                ) : null}
               </div>
             ))
           ) : (
@@ -62,6 +67,11 @@ export default async function TeacherUpdatesPage() {
                     .join(", ")}
                 </p>
                 <p className="mt-2 text-sm leading-7 text-navy/72">{note.content}</p>
+                {note.attachmentUrl ? (
+                  <a href={note.attachmentUrl} target="_blank" className="mt-3 inline-flex text-xs font-semibold uppercase tracking-[0.18em] text-gold">
+                    View attachment
+                  </a>
+                ) : null}
               </div>
             ))
           ) : (

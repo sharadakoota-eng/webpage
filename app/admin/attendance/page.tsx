@@ -7,6 +7,7 @@ export const revalidate = 0;
 type PageProps = {
   searchParams?: Promise<{
     classId?: string;
+    q?: string;
   }>;
 };
 
@@ -22,6 +23,7 @@ function withinDays(date: Date, days: number) {
 export default async function AdminAttendancePage({ searchParams }: PageProps) {
   const params = (await searchParams) ?? {};
   const classId = params.classId?.trim() ?? "";
+  const query = params.q?.trim().toLowerCase() ?? "";
 
   const [classes, records, teachers, teacherAttendance] = await Promise.all([
     prisma.class.findMany({
@@ -64,6 +66,22 @@ export default async function AdminAttendancePage({ searchParams }: PageProps) {
       },
     }),
   ]);
+
+  const filteredStudentHistory = query
+    ? records.filter((record) => {
+        const studentName = `${record.student.firstName} ${record.student.lastName ?? ""}`.toLowerCase();
+        const classLabel = `${record.class.name}${record.class.section ? ` ${record.class.section}` : ""}`.toLowerCase();
+        return studentName.includes(query) || classLabel.includes(query);
+      })
+    : records;
+
+  const filteredTeacherHistory = query
+    ? teacherAttendance.filter((entry) => {
+        const teacherName = entry.teacher.user.name.toLowerCase();
+        const classLabel = entry.class ? `${entry.class.name}${entry.class.section ? ` ${entry.class.section}` : ""}`.toLowerCase() : "";
+        return teacherName.includes(query) || classLabel.includes(query);
+      })
+    : teacherAttendance;
 
   const selectedClass = classes.find((item) => item.id === classId) ?? classes[0];
   const classSummaries = classes.map((item) => {
@@ -154,7 +172,7 @@ export default async function AdminAttendancePage({ searchParams }: PageProps) {
       </section>
 
       <section className="rounded-[2rem] bg-white p-6 shadow-card lg:p-8">
-        <form className="grid gap-4 lg:grid-cols-[1fr_auto]">
+        <form className="grid gap-4 lg:grid-cols-[1fr_1fr_auto_auto]">
           <select name="classId" defaultValue={classId} className="rounded-2xl border border-navy/10 px-4 py-3 text-sm text-navy">
             <option value="">All classes</option>
             {classes.map((item) => (
@@ -164,9 +182,21 @@ export default async function AdminAttendancePage({ searchParams }: PageProps) {
               </option>
             ))}
           </select>
+          <input
+            name="q"
+            defaultValue={query}
+            placeholder="Search student or teacher"
+            className="rounded-2xl border border-navy/10 px-4 py-3 text-sm text-navy"
+          />
           <button type="submit" className="rounded-full bg-navy px-5 py-3 text-sm font-semibold text-white">
-            Filter class
+            Search
           </button>
+          <a
+            href="/admin/attendance"
+            className="inline-flex items-center justify-center rounded-full border border-navy/15 px-5 py-3 text-sm font-semibold text-navy transition hover:border-navy/30"
+          >
+            Clear
+          </a>
         </form>
       </section>
 
@@ -194,23 +224,53 @@ export default async function AdminAttendancePage({ searchParams }: PageProps) {
         </section>
 
         <div className="space-y-6">
-          <AdminTeacherAttendanceDesk
-            teachers={teachers.map((teacher) => {
-              const firstClass = teacher.classes[0]?.class;
-              return {
-                id: teacher.id,
-                name: teacher.user.name,
-                classId: firstClass?.id,
-                classLabel: firstClass ? `${firstClass.name}${firstClass.section ? ` - ${firstClass.section}` : ""}` : null,
-              };
-            })}
-          />
+          <details className="rounded-[2rem] bg-white p-8 shadow-card" open>
+            <summary className="cursor-pointer text-sm font-semibold uppercase tracking-[0.24em] text-gold">Teacher Attendance Log</summary>
+            <div className="mt-5 space-y-6">
+              <AdminTeacherAttendanceDesk
+                teachers={teachers.map((teacher) => {
+                  const firstClass = teacher.classes[0]?.class;
+                  return {
+                    id: teacher.id,
+                    name: teacher.user.name,
+                    classId: firstClass?.id,
+                    classLabel: firstClass ? `${firstClass.name}${firstClass.section ? ` - ${firstClass.section}` : ""}` : null,
+                  };
+                })}
+              />
+              <div className="rounded-[1.4rem] border border-navy/10 px-5 py-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-navy/45">Teacher history</p>
+                <div className="mt-4 space-y-3">
+                  {filteredTeacherHistory.length > 0 ? (
+                    filteredTeacherHistory.slice(0, 18).map((entry) => (
+                      <div key={entry.id} className="rounded-[1.2rem] border border-navy/10 px-4 py-3 text-sm text-navy/72">
+                        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                          <p className="font-medium text-navy">{entry.teacher.user.name}</p>
+                          <span className="rounded-full bg-cream px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-gold">
+                            {entry.status.replaceAll("_", " ")}
+                          </span>
+                        </div>
+                        <p className="mt-2">
+                          {formatDate(entry.date)} | {entry.class ? `${entry.class.name}${entry.class.section ? ` - ${entry.class.section}` : ""}` : "No class linked"}
+                        </p>
+                        {entry.remarks ? <p className="mt-1 text-navy/60">{entry.remarks}</p> : null}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="rounded-[1.3rem] bg-[#fbf7f0] px-5 py-4 text-sm leading-7 text-navy/68">
+                      No teacher attendance has been marked yet.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </details>
 
-          <section className="rounded-[2rem] bg-white p-8 shadow-card">
-            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-gold">Student History</p>
+          <details className="rounded-[2rem] bg-white p-8 shadow-card" open>
+            <summary className="cursor-pointer text-sm font-semibold uppercase tracking-[0.24em] text-gold">Student Attendance Log</summary>
             <div className="mt-5 space-y-4">
-              {records.length > 0 ? (
-                records.slice(0, 24).map((record) => (
+              {filteredStudentHistory.length > 0 ? (
+                filteredStudentHistory.slice(0, 24).map((record) => (
                   <div key={record.id} className="rounded-[1.3rem] border border-navy/10 px-5 py-4">
                     <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                       <div>
@@ -234,33 +294,7 @@ export default async function AdminAttendancePage({ searchParams }: PageProps) {
                 </div>
               )}
             </div>
-          </section>
-
-          <section className="rounded-[2rem] bg-white p-8 shadow-card">
-            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-gold">Teacher Attendance History</p>
-            <div className="mt-5 space-y-4">
-              {teacherAttendance.length > 0 ? (
-                teacherAttendance.slice(0, 18).map((entry) => (
-                  <div key={entry.id} className="rounded-[1.2rem] border border-navy/10 px-4 py-3 text-sm text-navy/72">
-                    <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                      <p className="font-medium text-navy">{entry.teacher.user.name}</p>
-                      <span className="rounded-full bg-cream px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-gold">
-                        {entry.status.replaceAll("_", " ")}
-                      </span>
-                    </div>
-                    <p className="mt-2">
-                      {formatDate(entry.date)} | {entry.class ? `${entry.class.name}${entry.class.section ? ` - ${entry.class.section}` : ""}` : "No class linked"}
-                    </p>
-                    {entry.remarks ? <p className="mt-1 text-navy/60">{entry.remarks}</p> : null}
-                  </div>
-                ))
-              ) : (
-                <div className="rounded-[1.3rem] bg-[#fbf7f0] px-5 py-4 text-sm leading-7 text-navy/68">
-                  No teacher attendance has been marked yet.
-                </div>
-              )}
-            </div>
-          </section>
+          </details>
         </div>
       </div>
     </div>

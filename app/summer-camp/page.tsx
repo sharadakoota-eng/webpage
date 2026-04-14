@@ -15,7 +15,7 @@ const summerOfferings = [
     fees: "Rs. 2500",
     schedule: "Mon to Fri | 9:30 AM to 10:30 AM",
     teacher: "Sharada Koota Montessori",
-    note: "At Sharada Koota Montessori",
+    teacherIntro: "Guided by our in-house Montessori team with calm, playful routines.",
   },
   {
     title: "Summer Camp Senior",
@@ -23,65 +23,70 @@ const summerOfferings = [
     fees: "Rs. 2500",
     schedule: "Mon to Fri | 9:30 AM to 10:30 AM",
     teacher: "Sharada Koota Montessori",
-    note: "At Sharada Koota Montessori",
+    teacherIntro: "Led by our Montessori educators with activity-focused group learning.",
   },
   {
     title: "Chess",
     fees: "Rs. 2000",
     schedule: "Sat and Sun | 9:00 AM to 10:00 AM",
     teacher: "Sriram",
-    note: "Revenue split: 50 / 50",
+    teacherIntro: "Chess trainer focusing on basics, tactics, and confidence on the board.",
   },
   {
     title: "Handwriting Class",
     fees: "2 days: Rs. 2000 | 5 days: Rs. 4000",
     schedule: "Mon to Fri | 12:00 PM to 1:00 PM",
     teacher: "Shanthini",
-    note: "Revenue split: 50 / 50",
+    teacherIntro: "Handwriting coach helping children build neat, confident writing habits.",
   },
   {
     title: "Crochet",
     fees: "30 days: Rs. 5000 including material",
     schedule: "Mon to Fri | 9:00 AM to 10:00 AM",
     teacher: "Monica",
-    note: "Teacher share: Rs. 3500 | School share: Rs. 1500",
+    teacherIntro: "Craft mentor who introduces children to calm, creative crochet projects.",
   },
   {
     title: "Karate",
     fees: "2 days: Rs. 2000 | 5 days: Rs. 4000",
     schedule: "Mon to Fri | 2:00 PM to 3:00 PM",
     teacher: "Krishna",
-    note: "Teacher share: 2 days Rs. 1200 | 5 days Rs. 2500",
+    teacherIntro: "Karate instructor focusing on discipline, balance, and strength.",
   },
   {
     title: "Phonetic Class",
     fees: "2 days: Rs. 1500 | 5 days: Rs. 3000",
     schedule: "Mon to Fri | 10:00 AM to 11:00 AM",
     teacher: "H N Shilpa",
+    teacherIntro: "Phonics mentor helping children build confident reading foundations.",
   },
   {
     title: "Kannada Class - Offline",
     fees: "2 days: Rs. 1500 | 5 days: Rs. 3000",
     schedule: "Mon to Fri | 11:00 AM to 12:00 Noon",
     teacher: "H N Shilpa",
+    teacherIntro: "Language educator guiding spoken and written Kannada fluency.",
   },
   {
     title: "Kannada Class - Online",
     fees: "2 days: Rs. 2000 | 5 days: Rs. 4000",
     schedule: "Mon to Fri | 2:00 PM to 3:00 PM",
     teacher: "H N Shilpa",
+    teacherIntro: "Online Kannada sessions with structured practice and feedback.",
   },
   {
     title: "Abacus Class",
     fees: "Each level: Rs. 4000 including material",
     schedule: "Timings to be shared by the school",
     teacher: "H N Shilpa",
+    teacherIntro: "Abacus trainer building number sense and speed through levels.",
   },
   {
     title: "Vedic Math",
     fees: "Each level: Rs. 4000 including material",
     schedule: "Timings to be shared by the school",
     teacher: "H N Shilpa",
+    teacherIntro: "Vedic math coach focusing on mental math techniques and agility.",
   },
 ];
 
@@ -309,7 +314,7 @@ export default function SummerCampPage() {
               <div className="mt-4 rounded-[1.1rem] bg-white px-4 py-3">
                 <p className="text-[11px] uppercase tracking-[0.18em] text-navy/45">Teacher / Coordination</p>
                 <p className="mt-2 text-sm font-semibold text-navy">{item.teacher}</p>
-                {item.note ? <p className="mt-2 text-sm leading-6 text-navy/68">{item.note}</p> : null}
+                {item.teacherIntro ? <p className="mt-2 text-sm leading-6 text-navy/68">{item.teacherIntro}</p> : null}
               </div>
             </div>
           ))}

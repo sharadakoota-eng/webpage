@@ -1,5 +1,3 @@
-import fs from "node:fs/promises";
-import path from "node:path";
 import crypto from "node:crypto";
 import { AdmissionStatus, ApplicationDocumentStatus, RoleType } from "@prisma/client";
 import { NextResponse } from "next/server";
@@ -7,6 +5,7 @@ import { admissionDocumentTypes, buildAdmissionNotes, type AdmissionPrimaryParen
 import { requirePortalRole } from "@/lib/erp-auth";
 import { prisma } from "@/lib/prisma";
 import { admissionSchema } from "@/lib/validators";
+import { storeAdmissionUpload } from "@/lib/admission-uploads";
 
 type UploadedAdmissionDocument = {
   documentType: (typeof admissionDocumentTypes)[number]["type"];
@@ -26,33 +25,23 @@ function createShareToken() {
   return crypto.randomBytes(12).toString("hex");
 }
 
-function sanitizeSegment(value: string) {
-  return value.replace(/[^a-zA-Z0-9._-]/g, "-");
-}
-
 async function saveDocumentUploads(applicationNumber: string, formData: FormData): Promise<UploadedAdmissionDocument[]> {
-  const uploadDirectory = path.join(process.cwd(), "public", "uploads", "admissions", applicationNumber);
-  await fs.mkdir(uploadDirectory, { recursive: true });
-
   const uploads = await Promise.all(
     admissionDocumentTypes.map(async (document) => {
       const file = formData.get(document.key);
       if (!(file instanceof File) || file.size === 0) {
         return null;
       }
-
-      const ext = path.extname(file.name) || ".bin";
-      const fileName = `${document.key}-${Date.now()}-${sanitizeSegment(path.basename(file.name, ext))}${ext}`;
-      const targetPath = path.join(uploadDirectory, fileName);
-      const arrayBuffer = await file.arrayBuffer();
-
-      await fs.writeFile(targetPath, Buffer.from(arrayBuffer));
-
+      const stored = await storeAdmissionUpload({
+        file,
+        applicationNumber,
+        documentKey: document.key,
+      });
       return {
         documentType: document.type,
         status: ApplicationDocumentStatus.UPLOADED,
-        fileName: file.name,
-        fileUrl: `/uploads/admissions/${applicationNumber}/${fileName}`,
+        fileName: stored.fileName,
+        fileUrl: stored.fileUrl,
       };
     }),
   );

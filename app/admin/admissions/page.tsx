@@ -35,7 +35,21 @@ export default async function AdminAdmissionsPage() {
     }),
     prisma.program.findMany({
       orderBy: { name: "asc" },
-      select: { id: true, name: true, slug: true },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        feeStructures: {
+          orderBy: { createdAt: "asc" },
+          select: {
+            id: true,
+            title: true,
+            frequency: true,
+            amount: true,
+            taxPercentage: true,
+          },
+        },
+      },
     }),
     getAdmissionFormConfig(),
   ]);
@@ -127,7 +141,18 @@ export default async function AdminAdmissionsPage() {
               ? `Fee plans ${item.program.feeStructures.map((fee) => `Rs. ${fee.amount.toString()}`).join(" / ")}`
               : "Fee plan pending",
         }))}
-        programs={programs}
+        programs={programs.map((program) => ({
+          id: program.id,
+          name: program.name,
+          slug: program.slug,
+          feeStructures: program.feeStructures.map((fee) => ({
+            id: fee.id,
+            title: fee.title,
+            frequency: fee.frequency,
+            amount: fee.amount.toString(),
+            taxPercentage: fee.taxPercentage ? fee.taxPercentage.toString() : null,
+          })),
+        }))}
         formConfig={formConfig}
       />
     </div>

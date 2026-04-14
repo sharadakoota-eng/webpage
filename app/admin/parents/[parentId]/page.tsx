@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { InvoiceStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { AdminUserAccessCard } from "@/components/portal/admin-user-access-card";
+import { ParentAdminActions } from "@/components/portal/parent-admin-actions";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -79,7 +80,7 @@ export default async function AdminParentDetailPage({ params }: { params: Promis
         </div>
       </section>
 
-      <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+      <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
         <section className="space-y-6">
           <section className="rounded-[2rem] bg-white p-8 shadow-card">
             <p className="text-sm font-semibold uppercase tracking-[0.24em] text-gold">Family Profile</p>
@@ -152,6 +153,14 @@ export default async function AdminParentDetailPage({ params }: { params: Promis
               )}
             </div>
           </section>
+
+          <ParentAdminActions
+            parentId={parent.id}
+            students={parent.parentStudents.map((entry) => ({
+              id: entry.studentId,
+              name: `${entry.student.firstName} ${entry.student.lastName ?? ""}`.trim(),
+            }))}
+          />
         </section>
       </div>
     </div>

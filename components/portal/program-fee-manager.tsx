@@ -16,6 +16,14 @@ type ProgramFeeManagerProps = {
       title: string;
       frequency: string;
       amount: string;
+      taxPercentage?: string;
+      description?: string | null;
+    }>;
+    programCosts: Array<{
+      id: string;
+      title: string;
+      amount: string;
+      costType: string;
       description?: string | null;
     }>;
   }>;
@@ -33,6 +41,12 @@ export function ProgramFeeManager({ programs }: ProgramFeeManagerProps) {
     frequency: "Monthly",
     amount: "",
     taxPercentage: "",
+    description: "",
+  });
+  const [costValues, setCostValues] = useState({
+    programId: recurringPrograms[0]?.id ?? "",
+    title: "Lead teacher salary",
+    amount: "",
     description: "",
   });
 
@@ -55,6 +69,7 @@ export function ProgramFeeManager({ programs }: ProgramFeeManagerProps) {
       setStatus("success");
       setMessage(successMessage);
       setValues((current) => ({ ...current, amount: "", taxPercentage: "", description: "" }));
+      setCostValues((current) => ({ ...current, amount: "", description: "" }));
       router.refresh();
     } catch (error) {
       setStatus("error");
@@ -87,9 +102,24 @@ export function ProgramFeeManager({ programs }: ProgramFeeManagerProps) {
               ))}
             </select>
             <input value={values.title} onChange={(e) => setValues((c) => ({ ...c, title: e.target.value }))} placeholder="Fee title" className="rounded-2xl border border-navy/10 px-4 py-3" />
-            <input value={values.frequency} onChange={(e) => setValues((c) => ({ ...c, frequency: e.target.value }))} placeholder="Monthly / One-time / Term" className="rounded-2xl border border-navy/10 px-4 py-3" />
+            <select value={values.frequency} onChange={(e) => setValues((c) => ({ ...c, frequency: e.target.value }))} className="rounded-2xl border border-navy/10 px-4 py-3">
+              {["Monthly", "Quarterly", "Half-yearly", "Yearly", "One-time", "Term"].map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
             <input value={values.amount} onChange={(e) => setValues((c) => ({ ...c, amount: e.target.value }))} placeholder="Amount" className="rounded-2xl border border-navy/10 px-4 py-3" />
-            <input value={values.taxPercentage} onChange={(e) => setValues((c) => ({ ...c, taxPercentage: e.target.value }))} placeholder="Tax %" className="rounded-2xl border border-navy/10 px-4 py-3" />
+            <select
+              value={values.taxPercentage}
+              onChange={(e) => setValues((c) => ({ ...c, taxPercentage: e.target.value }))}
+              className="rounded-2xl border border-navy/10 px-4 py-3"
+            >
+              <option value="">No tax</option>
+              <option value="5">GST 5%</option>
+              <option value="12">GST 12%</option>
+              <option value="18">GST 18%</option>
+            </select>
             <input value={values.description} onChange={(e) => setValues((c) => ({ ...c, description: e.target.value }))} placeholder="Description" className="rounded-2xl border border-navy/10 px-4 py-3" />
           </div>
 
@@ -156,6 +186,8 @@ export function ProgramFeeManager({ programs }: ProgramFeeManagerProps) {
                     program.feeStructures.map((fee) => (
                       <span key={fee.id} className="rounded-full bg-cream px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-gold">
                         {fee.title}: Rs. {fee.amount}
+                        {fee.taxPercentage ? ` + ${fee.taxPercentage}% GST` : ""}
+                        {fee.description ? ` | ${fee.description}` : ""}
                       </span>
                     ))
                   ) : (
@@ -163,10 +195,57 @@ export function ProgramFeeManager({ programs }: ProgramFeeManagerProps) {
                       No fee structure configured yet
                     </span>
                   )}
+                  {program.programCosts.length > 0
+                    ? program.programCosts.map((cost) => (
+                        <span key={cost.id} className="rounded-full bg-[#f4f1ff] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6b21a8]">
+                          {cost.title}: Rs. {cost.amount}
+                        </span>
+                      ))
+                    : null}
                 </div>
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      <section className="rounded-[2rem] bg-white p-8 shadow-card">
+        <p className="text-sm font-semibold uppercase tracking-[0.24em] text-gold">Program Salary & Cost Tracking</p>
+        <h3 className="mt-2 font-display text-3xl text-navy">Track program salaries and operating costs</h3>
+        <p className="mt-3 text-sm leading-7 text-navy/68">
+          Use this for Montessori staff salaries or program-specific costs. These are internal-only and do not impact parent invoices.
+        </p>
+        <div className="mt-6 grid gap-4 sm:grid-cols-2">
+          <select value={costValues.programId} onChange={(e) => setCostValues((c) => ({ ...c, programId: e.target.value }))} className="rounded-2xl border border-navy/10 px-4 py-3">
+            {recurringPrograms.map((program) => (
+              <option key={program.id} value={program.id}>
+                {program.name}
+              </option>
+            ))}
+          </select>
+          <input value={costValues.title} onChange={(e) => setCostValues((c) => ({ ...c, title: e.target.value }))} placeholder="Salary / Cost title" className="rounded-2xl border border-navy/10 px-4 py-3" />
+          <input value={costValues.amount} onChange={(e) => setCostValues((c) => ({ ...c, amount: e.target.value }))} placeholder="Amount" className="rounded-2xl border border-navy/10 px-4 py-3" />
+          <input value={costValues.description} onChange={(e) => setCostValues((c) => ({ ...c, description: e.target.value }))} placeholder="Notes (optional)" className="rounded-2xl border border-navy/10 px-4 py-3" />
+        </div>
+        <div className="mt-5 flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={() =>
+              postAction(
+                {
+                  action: "createProgramCost",
+                  programId: costValues.programId,
+                  title: costValues.title,
+                  amount: Number(costValues.amount || 0),
+                  description: costValues.description,
+                },
+                "Program cost saved successfully.",
+              )
+            }
+            className="rounded-full bg-navy px-6 py-3 text-sm font-semibold text-white"
+          >
+            {status === "loading" ? "Saving..." : "Add program cost"}
+          </button>
         </div>
       </section>
     </div>

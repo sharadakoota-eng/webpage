@@ -59,7 +59,18 @@ type AdmissionRecord = {
   }[];
 };
 
-type ProgramOption = { id: string; name: string; slug: string };
+type ProgramOption = {
+  id: string;
+  name: string;
+  slug: string;
+  feeStructures: Array<{
+    id: string;
+    title: string;
+    frequency: string;
+    amount: string;
+    taxPercentage: string | null;
+  }>;
+};
 
 type AdmissionWorkbenchProps = {
   admissions: AdmissionRecord[];
@@ -119,6 +130,58 @@ const requiredDocumentUploadKeys = [
   { key: "previous_school_record", label: "Previous school record / marks card" },
   { key: "medical_record", label: "Medical record" },
 ] as const;
+
+const genderOptions = ["Male", "Female", "Other"] as const;
+const bloodGroupOptions = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"] as const;
+
+function addMonths(base: Date, months: number) {
+  const date = new Date(base);
+  date.setMonth(date.getMonth() + months);
+  return date;
+}
+
+function getNextDueLabel(frequency: string) {
+  const normalized = frequency.trim().toLowerCase();
+  if (normalized.includes("one")) return "Due today";
+  if (normalized.includes("month")) return "Next due in 1 month";
+  if (normalized.includes("quarter")) return "Next due in 3 months";
+  if (normalized.includes("half")) return "Next due in 6 months";
+  if (normalized.includes("year")) return "Next due in 12 months";
+  return "Due date as per schedule";
+}
+
+function getNextDueDate(frequency: string) {
+  const today = new Date();
+  const normalized = frequency.trim().toLowerCase();
+  if (normalized.includes("one")) return today;
+  if (normalized.includes("month")) return addMonths(today, 1);
+  if (normalized.includes("quarter")) return addMonths(today, 3);
+  if (normalized.includes("half")) return addMonths(today, 6);
+  if (normalized.includes("year")) return addMonths(today, 12);
+  return null;
+}
+
+function formatShortDate(value: Date) {
+  return new Intl.DateTimeFormat("en-IN", { day: "2-digit", month: "short", year: "numeric" }).format(value);
+}
+
+function getAgeLabel(dobValue: string) {
+  if (!dobValue) return "";
+  const dob = new Date(dobValue);
+  if (Number.isNaN(dob.getTime())) return "";
+  const today = new Date();
+  let years = today.getFullYear() - dob.getFullYear();
+  let months = today.getMonth() - dob.getMonth();
+  if (today.getDate() < dob.getDate()) months -= 1;
+  if (months < 0) {
+    years -= 1;
+    months += 12;
+  }
+  if (years < 0) return "";
+  if (years === 0) return `${months} months`;
+  if (months === 0) return `${years} years`;
+  return `${years} years ${months} months`;
+}
 
 const initialManualAdmission: ManualAdmissionState = {
   primaryParent: "FATHER",
@@ -199,6 +262,9 @@ export function AdmissionWorkbench({ admissions, programs, formConfig }: Admissi
   const publicFormUrl = typeof window !== "undefined" ? `${window.location.origin}/admissions` : "/admissions";
   const isLocalhostLink = publicFormUrl.includes("localhost");
   const requiredDocuments = formConfig.requiredDocuments.filter((item) => item.enabled);
+  const selectedProgram = manualAdmission.programSlug
+    ? programs.find((program) => program.slug === manualAdmission.programSlug)
+    : undefined;
   const stageSummary = useMemo(
     () =>
       (["SUBMITTED", "UNDER_REVIEW", "APPROVED", "REJECTED", "ENROLLED"] as AdmissionPipelineStage[]).map((stage) => ({
@@ -362,11 +428,41 @@ export function AdmissionWorkbench({ admissions, programs, formConfig }: Admissi
                 <input value={manualAdmission.childName} onChange={(e) => setManualAdmission((current) => ({ ...current, childName: e.target.value }))} placeholder="Child full name" className={inputClassName()} />
                 <div>
                   <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-navy/55">DOB of child</p>
-                  <input type="date" value={manualAdmission.childDob} onChange={(e) => setManualAdmission((current) => ({ ...current, childDob: e.target.value }))} className={inputClassName()} />
+                  <input
+                    type="date"
+                    value={manualAdmission.childDob}
+                    onChange={(e) =>
+                      setManualAdmission((current) => ({
+                        ...current,
+                        childDob: e.target.value,
+                        childAge: getAgeLabel(e.target.value),
+                      }))
+                    }
+                    className={inputClassName()}
+                  />
                 </div>
-                <input value={manualAdmission.childAge} onChange={(e) => setManualAdmission((current) => ({ ...current, childAge: e.target.value }))} placeholder="Child age" className={inputClassName()} />
-                <input value={manualAdmission.childGender} onChange={(e) => setManualAdmission((current) => ({ ...current, childGender: e.target.value }))} placeholder="Gender" className={inputClassName()} />
-                <input value={manualAdmission.childBloodGroup} onChange={(e) => setManualAdmission((current) => ({ ...current, childBloodGroup: e.target.value }))} placeholder="Blood group" className={inputClassName()} />
+                <input
+                  value={manualAdmission.childAge}
+                  readOnly
+                  placeholder="Child age (auto)"
+                  className={`${inputClassName()} bg-[#fbf7f0]`}
+                />
+                <select value={manualAdmission.childGender} onChange={(e) => setManualAdmission((current) => ({ ...current, childGender: e.target.value }))} className={inputClassName()}>
+                  <option value="">Select gender</option>
+                  {genderOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+                <select value={manualAdmission.childBloodGroup} onChange={(e) => setManualAdmission((current) => ({ ...current, childBloodGroup: e.target.value }))} className={inputClassName()}>
+                  <option value="">Select blood group</option>
+                  {bloodGroupOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
                 <input value={manualAdmission.childAadhaar} onChange={(e) => setManualAdmission((current) => ({ ...current, childAadhaar: e.target.value }))} placeholder="Child Aadhaar number" className={inputClassName()} />
                 <select value={manualAdmission.programSlug} onChange={(e) => setManualAdmission((current) => ({ ...current, programSlug: e.target.value }))} className={inputClassName()}>
                   <option value="">Select program</option>
@@ -380,6 +476,36 @@ export function AdmissionWorkbench({ admissions, programs, formConfig }: Admissi
                 <input value={manualAdmission.schoolVisitStatus} onChange={(e) => setManualAdmission((current) => ({ ...current, schoolVisitStatus: e.target.value }))} placeholder="Visit status" className={inputClassName()} />
                 <input value={manualAdmission.previousSchool} onChange={(e) => setManualAdmission((current) => ({ ...current, previousSchool: e.target.value }))} placeholder="Previous school" className={inputClassName()} />
                 <input value={manualAdmission.previousGrade} onChange={(e) => setManualAdmission((current) => ({ ...current, previousGrade: e.target.value }))} placeholder="Previous grade" className={inputClassName()} />
+              </div>
+              <div className="mt-5 rounded-[1.2rem] border border-navy/10 bg-white p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gold">Program fee preview</p>
+                {selectedProgram && selectedProgram.feeStructures.length > 0 ? (
+                  <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                    {selectedProgram.feeStructures.map((fee) => {
+                      const nextDue = getNextDueDate(fee.frequency);
+                      const firstPaymentDate = new Date();
+                      return (
+                        <div key={fee.id} className="rounded-[1rem] bg-[#fbf7f0] px-4 py-3">
+                          <p className="text-xs uppercase tracking-[0.18em] text-navy/50">{fee.frequency}</p>
+                          <p className="mt-2 text-sm font-semibold text-navy">{fee.title}</p>
+                          <p className="mt-1 text-sm text-navy/70">
+                            Rs. {fee.amount}
+                            {fee.taxPercentage ? ` + ${fee.taxPercentage}% GST` : ""}
+                          </p>
+                          <p className="mt-2 text-xs text-navy/55">
+                            First payment: {formatShortDate(firstPaymentDate)}
+                          </p>
+                          <p className="mt-1 text-xs text-navy/55">
+                            Next payment: {getNextDueLabel(fee.frequency)}
+                            {nextDue ? ` • ${formatShortDate(nextDue)}` : ""}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="mt-3 text-sm text-navy/60">Select a program to preview the fee schedule and upcoming due date.</p>
+                )}
               </div>
             </section>
           </div>
@@ -561,6 +687,15 @@ export function AdmissionWorkbench({ admissions, programs, formConfig }: Admissi
                       >
                         Confirmation PDF
                       </DocumentDownloadButton>
+                    ) : null}
+                    {item.pipelineStage === "ENROLLED" ? (
+                      <button
+                        type="button"
+                        onClick={() => postAction({ action: "readmitNextYear", admissionId: item.id }, "New admission created for next academic year.")}
+                        className="rounded-full border border-emerald-200 px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700"
+                      >
+                        Re-admit next year
+                      </button>
                     ) : null}
                     <button
                       type="button"

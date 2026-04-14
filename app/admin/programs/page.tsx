@@ -1,6 +1,7 @@
 import { ProgramCategory } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { ProgramFeeManager } from "@/components/portal/program-fee-manager";
+import { ProgramManager } from "@/components/portal/program-manager";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -18,6 +19,9 @@ export default async function AdminProgramsPage() {
     orderBy: { name: "asc" },
     include: {
       feeStructures: {
+        orderBy: { createdAt: "desc" },
+      },
+      programCosts: {
         orderBy: { createdAt: "desc" },
       },
       _count: {
@@ -54,23 +58,46 @@ export default async function AdminProgramsPage() {
         </p>
       </section>
 
+      <ProgramManager
+        programs={programs.map((program) => ({
+          id: program.id,
+          name: program.name,
+          slug: program.slug,
+          category: program.category,
+          ageGroup: program.ageGroup,
+          schedule: program.schedule,
+          shortIntro: program.shortIntro,
+          overview: program.overview,
+          ctaLabel: program.ctaLabel,
+          isPublished: program.isPublished,
+        }))}
+      />
+
       <ProgramFeeManager
         programs={programs.map((program) => ({
           id: program.id,
           name: program.name,
           category: categoryLabels[program.category],
           ageGroup: program.ageGroup,
-          schedule: program.schedule,
-          isPublished: program.isPublished,
-          feeStructures: program.feeStructures.map((fee) => ({
-            id: fee.id,
-            title: fee.title,
-            frequency: fee.frequency,
-            amount: fee.amount.toString(),
-            description: fee.description,
-          })),
-        }))}
-      />
-    </div>
+        schedule: program.schedule,
+        isPublished: program.isPublished,
+        feeStructures: program.feeStructures.map((fee) => ({
+          id: fee.id,
+          title: fee.title,
+          frequency: fee.frequency,
+          amount: fee.amount.toString(),
+          taxPercentage: fee.taxPercentage?.toString() ?? "",
+          description: fee.description,
+        })),
+        programCosts: program.programCosts.map((cost) => ({
+          id: cost.id,
+          title: cost.title,
+          amount: cost.amount.toString(),
+          costType: cost.costType,
+          description: cost.description,
+        })),
+      }))}
+    />
+  </div>
   );
 }

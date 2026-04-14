@@ -5,7 +5,7 @@ import { z } from "zod";
 import { defaultAdmissionFormConfig } from "@/lib/admin-config";
 import { buildAdmissionNotes, documentTypeLabelMap } from "@/lib/admissions";
 import { requirePortalRole } from "@/lib/erp-auth";
-import { createProgramInvoiceForStudent, ensureProgramFeeReady } from "@/lib/finance";
+import { createInstallmentInvoicesForStudent, createProgramInvoiceForStudent, ensureProgramFeeReady } from "@/lib/finance";
 import { triggerAdmissionApprovedEvent, triggerDocumentRejectedEvent, triggerParentPortalReadyEvent } from "@/lib/notifications/events";
 import { prisma } from "@/lib/prisma";
 
@@ -81,6 +81,10 @@ const payloadSchema = z.discriminatedUnion("action", [
     admissionId: z.string().min(1),
   }),
   z.object({
+    action: z.literal("readmitNextYear"),
+    admissionId: z.string().min(1),
+  }),
+  z.object({
     action: z.literal("updateReviewNotes"),
     admissionId: z.string().min(1),
     reviewNotes: z.string().optional().or(z.literal("")),
@@ -131,6 +135,8 @@ const payloadSchema = z.discriminatedUnion("action", [
     programId: z.string().optional(),
     classId: z.string().optional(),
     parentPassword: z.string().min(6),
+    installmentCount: z.coerce.number().min(1).max(6).optional(),
+    installmentDates: z.array(z.string()).optional(),
   }),
   z.object({
     action: z.literal("saveFormConfig"),
@@ -316,6 +322,48 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true });
     }
 
+    if (payload.action === "readmitNextYear") {
+      const familyProfile =
+        admission.familyProfile && typeof admission.familyProfile === "object" && !Array.isArray(admission.familyProfile)
+          ? (admission.familyProfile as Record<string, unknown>)
+          : undefined;
+      const childProfile =
+        admission.childProfile && typeof admission.childProfile === "object" && !Array.isArray(admission.childProfile)
+          ? (admission.childProfile as Record<string, unknown>)
+          : undefined;
+      const admissionProfile =
+        admission.admissionProfile && typeof admission.admissionProfile === "object" && !Array.isArray(admission.admissionProfile)
+          ? (admission.admissionProfile as Record<string, unknown>)
+          : {};
+
+      const nextAdmission = await prisma.admission.create({
+        data: {
+          applicationNumber: createApplicationNumber(),
+          shareToken: crypto.randomUUID(),
+          parentName: admission.parentName,
+          childName: admission.childName,
+          childDob: admission.childDob,
+          phone: admission.phone,
+          email: admission.email ?? undefined,
+          programId: admission.programId ?? undefined,
+          notes: admission.notes ?? undefined,
+          familyProfile,
+          childProfile,
+          admissionProfile: {
+            ...admissionProfile,
+            reAdmission: {
+              sourceAdmissionId: admission.id,
+              requestedAt: new Date().toISOString(),
+            },
+          },
+          status: AdmissionStatus.SUBMITTED,
+          submittedAt: new Date(),
+        },
+      });
+
+      return NextResponse.json({ success: true, admissionId: nextAdmission.id });
+    }
+
     if (payload.action === "updateReviewNotes") {
       await prisma.admission.update({
         where: { id: admission.id },
@@ -445,6 +493,16 @@ export async function POST(request: Request) {
       );
     }
 
+    if (payload.installmentCount && payload.installmentCount > 1) {
+      const dueDates = payload.installmentDates?.filter((value) => value) ?? [];
+      if (dueDates.length < payload.installmentCount) {
+        return NextResponse.json(
+          { success: false, message: "Please provide due dates for every installment." },
+          { status: 400 },
+        );
+      }
+    }
+
     const parentRole = await prisma.role.findUniqueOrThrow({ where: { type: RoleType.PARENT } });
     const passwordHash = await bcrypt.hash(payload.parentPassword, 10);
     const splitName = admission.childName.trim().split(" ");
@@ -542,12 +600,26 @@ export async function POST(request: Request) {
         });
       }
 
-      await createProgramInvoiceForStudent({
-        tx,
-        studentId: student.id,
-        programId: targetProgramId,
-        createdBy: "admission_enrollment",
-      });
+      const installmentDates =
+        payload.installmentDates?.map((value) => new Date(value)).filter((date) => !Number.isNaN(date.getTime())) ?? [];
+      const installmentCount = payload.installmentCount ?? 1;
+
+      if (installmentCount > 1 && installmentDates.length > 0) {
+        await createInstallmentInvoicesForStudent({
+          tx,
+          studentId: student.id,
+          programId: targetProgramId,
+          dueDates: installmentDates,
+          createdBy: "admission_enrollment",
+        });
+      } else {
+        await createProgramInvoiceForStudent({
+          tx,
+          studentId: student.id,
+          programId: targetProgramId,
+          createdBy: "admission_enrollment",
+        });
+      }
 
       await tx.admission.update({
         where: { id: admission.id },
@@ -562,6 +634,18 @@ export async function POST(request: Request) {
             portalReadyAt: new Date().toISOString(),
             temporaryPasswordIssued: true,
             enrollmentState: "ENROLLED",
+          },
+          admissionProfile: {
+            ...(admission.admissionProfile && typeof admission.admissionProfile === "object" && !Array.isArray(admission.admissionProfile)
+              ? (admission.admissionProfile as Record<string, unknown>)
+              : {}),
+            installmentPlan:
+              installmentCount > 1
+                ? {
+                    count: installmentCount,
+                    dueDates: installmentDates.map((date) => date.toISOString().slice(0, 10)),
+                  }
+                : undefined,
           },
         },
       });

@@ -210,15 +210,29 @@ async function main() {
     programs.set(program.slug, { id: program.id, category: program.category });
   }
 
-  for (const [slug, structures] of Object.entries(feeStructuresByProgram)) {
-    const program = programs.get(slug);
-    if (!program) continue;
-    for (const fee of structures) {
-      await prisma.feeStructure.create({
-        data: { programId: program.id, title: fee.title, frequency: fee.frequency, amount: fee.amount, description: fee.description },
+    for (const [slug, structures] of Object.entries(feeStructuresByProgram)) {
+      const program = programs.get(slug);
+      if (!program) continue;
+      for (const fee of structures) {
+        await prisma.feeStructure.create({
+          data: { programId: program.id, title: fee.title, frequency: fee.frequency, amount: fee.amount, description: fee.description },
+        });
+      }
+    }
+
+    for (const [slug, program] of programs.entries()) {
+      if (program.category === ProgramCategory.CAMP) {
+        continue;
+      }
+      await prisma.programCost.create({
+        data: {
+          programId: program.id,
+          title: `${slug.replaceAll("-", " ")} lead educator salary`,
+          amount: 12000,
+          description: "Monthly salary baseline for program staffing.",
+        },
       });
     }
-  }
 
   const classAssignment = ["class-montessori-a","class-montessori-a","class-montessori-b","class-montessori-b","class-daycare-a","class-activity-a"];
   const programAssignment = ["montessori-program","montessori-program","montessori-program","day-care","after-school-activities","kannada-kasturi"];

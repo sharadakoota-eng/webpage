@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requirePortalRole } from "@/lib/erp-auth";
 import { prisma } from "@/lib/prisma";
+import { storeHomeworkUpload } from "@/lib/homework-uploads";
 
 const payloadSchema = z.discriminatedUnion("action", [
   z.object({
@@ -33,7 +34,49 @@ export async function POST(request: Request) {
   }
 
   try {
-    const payload = payloadSchema.parse(await request.json());
+    const contentType = request.headers.get("content-type") ?? "";
+    let payload: z.infer<typeof payloadSchema>;
+    let attachment: File | null = null;
+
+    if (contentType.includes("multipart/form-data")) {
+      const formData = await request.formData();
+      const action = (formData.get("action") ?? "").toString();
+      if (!action) {
+        return NextResponse.json({ success: false, message: "Missing action for update." }, { status: 400 });
+      }
+
+      attachment = formData.get("attachment") instanceof File ? (formData.get("attachment") as File) : null;
+
+      if (action === "createClassUpdate") {
+        payload = payloadSchema.parse({
+          action,
+          classId: (formData.get("classId") ?? "").toString(),
+          title: (formData.get("title") ?? "").toString(),
+          content: (formData.get("content") ?? "").toString(),
+        });
+      } else if (action === "createIndividualNote") {
+        const rawStudents = (formData.get("studentIds") ?? "").toString();
+        const studentIds = rawStudents ? rawStudents.split(",").filter(Boolean) : [];
+        payload = payloadSchema.parse({
+          action,
+          classId: (formData.get("classId") ?? "").toString(),
+          title: (formData.get("title") ?? "").toString(),
+          content: (formData.get("content") ?? "").toString(),
+          studentIds,
+        });
+      } else if (action === "createObservation") {
+        payload = payloadSchema.parse({
+          action,
+          studentId: (formData.get("studentId") ?? "").toString(),
+          title: (formData.get("title") ?? "").toString(),
+          content: (formData.get("content") ?? "").toString(),
+        });
+      } else {
+        return NextResponse.json({ success: false, message: "Unsupported action." }, { status: 400 });
+      }
+    } else {
+      payload = payloadSchema.parse(await request.json());
+    }
     const teacher = await prisma.teacher.findUnique({
       where: { userId: session.sub },
       include: {
@@ -73,6 +116,14 @@ export async function POST(request: Request) {
         return NextResponse.json({ success: false, message: "Choose at least one student for this note." }, { status: 400 });
       }
 
+      let attachmentUrl: string | null = null;
+      let attachmentName: string | null = null;
+      if (attachment) {
+        const stored = await storeHomeworkUpload({ file: attachment, teacherId: teacher.id });
+        attachmentUrl = stored.fileUrl;
+        attachmentName = stored.fileName;
+      }
+
       await prisma.homeworkUpdate.create({
         data: {
           teacherId: teacher.id,
@@ -83,6 +134,8 @@ export async function POST(request: Request) {
               : HomeworkUpdateAudience.INDIVIDUAL_NOTE,
           title: payload.title,
           content: payload.content,
+          attachmentUrl,
+          attachmentName,
           students: {
             createMany: {
               data: targetStudentIds.map((studentId) => ({ studentId })),

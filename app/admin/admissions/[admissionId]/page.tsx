@@ -67,6 +67,10 @@ export default async function AdminAdmissionDetailPage({ params }: { params: Pro
   const childProfile = asRecord<Record<string, string | undefined>>(admission.childProfile);
   const operationalProfile = asRecord<Record<string, string | boolean | undefined>>(admission.admissionProfile);
   const communicationLog = asRecord<Record<string, string | boolean | undefined>>(admission.communicationLog);
+  const installmentPlan =
+    operationalProfile && typeof operationalProfile.installmentPlan === "object" && operationalProfile.installmentPlan
+      ? (operationalProfile.installmentPlan as { count?: number; dueDates?: string[] })
+      : null;
   const pipelineStage = deriveAdmissionPipelineStage({
     status: admission.status,
     parentId: admission.parentId,
@@ -136,6 +140,8 @@ export default async function AdminAdmissionDetailPage({ params }: { params: Pro
         portalAccessSentAtLabel={admission.portalAccessSentAt ? formatDate(admission.portalAccessSentAt) : null}
         preferredStartMonth={typeof operationalProfile?.preferredStartMonth === "string" ? operationalProfile.preferredStartMonth : undefined}
         schoolVisitStatus={typeof operationalProfile?.schoolVisitStatus === "string" ? operationalProfile.schoolVisitStatus : undefined}
+        initialInstallmentCount={typeof installmentPlan?.count === "number" ? installmentPlan.count : undefined}
+        initialInstallmentDates={Array.isArray(installmentPlan?.dueDates) ? installmentPlan?.dueDates : undefined}
         documents={admission.documents.map((document) => ({
           id: document.id,
           documentType: document.documentType,

@@ -52,6 +52,8 @@ type AdmissionRecordDeskProps = {
   portalAccessSentAtLabel?: string | null;
   preferredStartMonth?: string;
   schoolVisitStatus?: string;
+  initialInstallmentCount?: number;
+  initialInstallmentDates?: string[];
   documents: AdmissionDocumentRecord[];
   initialValues: {
     parentName: string;
@@ -155,6 +157,8 @@ export function AdmissionRecordDesk({
   portalAccessSentAtLabel,
   preferredStartMonth,
   schoolVisitStatus,
+  initialInstallmentCount,
+  initialInstallmentDates,
   documents,
   initialValues,
 }: AdmissionRecordDeskProps) {
@@ -164,6 +168,16 @@ export function AdmissionRecordDesk({
   const [programId, setProgramId] = useState(currentProgramId ?? "");
   const [classId, setClassId] = useState(currentClassId ?? "");
   const [parentPassword, setParentPassword] = useState("parent123");
+  const [installmentCount, setInstallmentCount] = useState(initialInstallmentCount ?? 1);
+  const [installmentDates, setInstallmentDates] = useState<string[]>(() => {
+    const count = initialInstallmentCount ?? 1;
+    const base = initialInstallmentDates ?? [];
+    const seeded = base.slice(0, count);
+    while (seeded.length < count) {
+      seeded.push("");
+    }
+    return seeded.length > 0 ? seeded : [""];
+  });
   const [editValues, setEditValues] = useState(initialValues);
   const [editingSection, setEditingSection] = useState<EditableSection | null>(null);
   const [uploadingDocumentId, setUploadingDocumentId] = useState<string | null>(null);
@@ -174,6 +188,20 @@ export function AdmissionRecordDesk({
   const pipelineStage = deriveAdmissionPipelineStage({ status, parentId, studentId, enrolledAt: enrolledAtLabel });
   const isApproved = pipelineStage === "APPROVED";
   const isEnrolled = pipelineStage === "ENROLLED";
+
+  function syncInstallmentDates(count: number) {
+    setInstallmentDates((current) => {
+      const next = [...current];
+      if (next.length < count) {
+        while (next.length < count) {
+          next.push("");
+        }
+      } else if (next.length > count) {
+        next.length = count;
+      }
+      return next;
+    });
+  }
 
   const childItems = [
     { label: "Child name", value: valueOrDash(editValues.childName) },
@@ -664,6 +692,40 @@ export function AdmissionRecordDesk({
                   </option>
                 ))}
               </select>
+              <select
+                value={installmentCount}
+                onChange={(event) => {
+                  const nextCount = Number(event.target.value);
+                  setInstallmentCount(nextCount);
+                  syncInstallmentDates(nextCount);
+                }}
+                className="rounded-[1rem] border border-navy/10 bg-[#fcfcfd] px-4 py-3 text-sm text-navy outline-none transition focus:border-navy/25"
+              >
+                {[1, 2, 3, 4, 5, 6].map((count) => (
+                  <option key={count} value={count}>
+                    {count} installment{count > 1 ? "s" : ""}
+                  </option>
+                ))}
+              </select>
+              {installmentCount > 1 ? (
+                <div className="grid gap-3 md:grid-cols-2">
+                  {installmentDates.map((value, index) => (
+                    <div key={`installment-${index}`} className="space-y-2">
+                      <label className="text-xs font-semibold uppercase tracking-[0.18em] text-navy/45">
+                        Installment {index + 1} due date
+                      </label>
+                      <input
+                        type="date"
+                        value={value}
+                        onChange={(event) =>
+                          setInstallmentDates((current) => current.map((item, i) => (i === index ? event.target.value : item)))
+                        }
+                        className="w-full rounded-[1rem] border border-navy/10 bg-[#fcfcfd] px-4 py-3 text-sm text-navy outline-none transition focus:border-navy/25"
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : null}
               <input
                 value={parentPassword}
                 onChange={(event) => setParentPassword(event.target.value)}
@@ -685,6 +747,8 @@ export function AdmissionRecordDesk({
                       programId: programId || undefined,
                       classId: classId || undefined,
                       parentPassword,
+                      installmentCount,
+                      installmentDates: installmentDates.filter((value) => value),
                     },
                     "Enrollment completed and parent portal created.",
                   )
