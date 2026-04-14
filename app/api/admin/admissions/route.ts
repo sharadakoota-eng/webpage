@@ -1,5 +1,5 @@
 import bcrypt from "bcryptjs";
-import { AdmissionStatus, ApplicationDocumentStatus, RoleType } from "@prisma/client";
+import { AdmissionStatus, ApplicationDocumentStatus, Prisma, RoleType } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { defaultAdmissionFormConfig } from "@/lib/admin-config";
@@ -347,8 +347,8 @@ export async function POST(request: Request) {
           email: admission.email ?? undefined,
           programId: admission.programId ?? undefined,
           notes: admission.notes ?? undefined,
-          familyProfile,
-          childProfile,
+          familyProfile: familyProfile as Prisma.InputJsonValue | undefined,
+          childProfile: childProfile as Prisma.InputJsonValue | undefined,
           admissionProfile: {
             ...admissionProfile,
             reAdmission: {
