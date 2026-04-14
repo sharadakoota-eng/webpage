@@ -41,6 +41,7 @@ export function ClassBatchManager({ classes, programs, teachers }: ClassBatchMan
     classId: classes[0]?.id ?? "",
     teacherId: teachers[0]?.id ?? "",
   });
+  const [deleteCandidate, setDeleteCandidate] = useState(classes[0]?.id ?? "");
 
   async function postAction(payload: Record<string, unknown>, successMessage: string) {
     setStatus("loading");
@@ -149,6 +150,35 @@ export function ClassBatchManager({ classes, programs, teachers }: ClassBatchMan
             >
               Assign teacher
             </button>
+          </div>
+
+          <div className="mt-8 rounded-[1.4rem] border border-rose-100 bg-[#fff7f5] p-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-rose-600">Delete Class</p>
+            <p className="mt-2 text-sm text-navy/70">
+              You can delete a class only if no students are assigned. Remove students before deleting.
+            </p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto]">
+              <select value={deleteCandidate} onChange={(e) => setDeleteCandidate(e.target.value)} className="rounded-2xl border border-navy/10 bg-white px-4 py-3">
+                {classes.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name}
+                    {item.section ? ` - ${item.section}` : ""}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() =>
+                  postAction(
+                    { action: "deleteClass", classId: deleteCandidate },
+                    "Class deleted successfully.",
+                  )
+                }
+                className="rounded-full border border-rose-200 px-6 py-3 text-sm font-semibold text-rose-700"
+              >
+                Delete class
+              </button>
+            </div>
           </div>
 
           <div className="mt-8 space-y-4">

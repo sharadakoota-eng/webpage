@@ -24,6 +24,10 @@ const payloadSchema = z.discriminatedUnion("action", [
     teacherId: z.string().min(1),
     isLead: z.boolean().optional(),
   }),
+  z.object({
+    action: z.literal("deleteClass"),
+    classId: z.string().min(1),
+  }),
 ]);
 
 export async function POST(request: Request) {
@@ -50,6 +54,47 @@ export async function POST(request: Request) {
           teacherId: payload.teacherId,
           classId: payload.classId,
           isLead: payload.isLead ?? true,
+        },
+      });
+
+      return NextResponse.json({ success: true });
+    }
+
+    if (payload.action === "deleteClass") {
+      const classRecord = await prisma.class.findUnique({
+        where: { id: payload.classId },
+        include: { students: { select: { id: true } } },
+      });
+      if (!classRecord) {
+        return NextResponse.json({ success: false, message: "Class not found." }, { status: 404 });
+      }
+      if (classRecord.students.length > 0) {
+        return NextResponse.json(
+          { success: false, message: "Remove students from this class before deleting it." },
+          { status: 400 },
+        );
+      }
+
+      await prisma.teacherClassMap.deleteMany({
+        where: { classId: payload.classId },
+      });
+
+      await prisma.class.delete({
+        where: { id: payload.classId },
+      });
+
+      const currentProfiles = await getClassBatchProfiles();
+      const nextProfiles = currentProfiles.filter((item) => item.classId !== payload.classId);
+      await prisma.setting.upsert({
+        where: { key: "class_batch_profiles" },
+        update: {
+          value: nextProfiles,
+          description: "Batch timing and program mapping for classes.",
+        },
+        create: {
+          key: "class_batch_profiles",
+          description: "Batch timing and program mapping for classes.",
+          value: nextProfiles,
         },
       });
 
