@@ -36,7 +36,7 @@ const highlights = [
 ];
 
 const trustMetrics = [
-  { label: "Programs Designed", value: "6+" },
+  { label: "Programs Designed", value: "1.5+ years" },
   { label: "Parent-First Flows", value: "Mobile" },
   { label: "Admissions Journey", value: "Structured" },
   { label: "Care Experience", value: "Premium" },
