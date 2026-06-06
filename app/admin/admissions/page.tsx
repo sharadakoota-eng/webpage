@@ -6,6 +6,12 @@ import { admissionPipelineStageLabelMap, deriveAdmissionPipelineStage, documentS
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+type PageProps = {
+  searchParams?: Promise<{
+    notice?: string;
+  }>;
+};
+
 function formatDate(value: Date) {
   return new Intl.DateTimeFormat("en-IN", {
     day: "2-digit",
@@ -14,7 +20,9 @@ function formatDate(value: Date) {
   }).format(value);
 }
 
-export default async function AdminAdmissionsPage() {
+export default async function AdminAdmissionsPage({ searchParams }: PageProps) {
+  const params = (await searchParams) ?? {};
+  const notice = params.notice?.trim() ?? "";
   const [admissions, programs, formConfig] = await Promise.all([
     prisma.admission.findMany({
       orderBy: { createdAt: "desc" },
@@ -22,8 +30,12 @@ export default async function AdminAdmissionsPage() {
         program: {
           include: {
             feeStructures: {
+              where: {
+                feeCode: { not: null },
+                isEnabled: true,
+                amount: { gt: 0 },
+              },
               orderBy: { createdAt: "desc" },
-              take: 2,
             },
           },
         },
@@ -40,6 +52,11 @@ export default async function AdminAdmissionsPage() {
         name: true,
         slug: true,
         feeStructures: {
+          where: {
+            feeCode: { not: null },
+            isEnabled: true,
+            amount: { gt: 0 },
+          },
           orderBy: { createdAt: "asc" },
           select: {
             id: true,
@@ -70,6 +87,12 @@ export default async function AdminAdmissionsPage() {
 
   return (
     <div className="space-y-8">
+      {notice ? (
+        <div className="rounded-[1.15rem] bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          {notice}
+        </div>
+      ) : null}
+
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
         {[
           { label: "Submitted", value: pipelineCounts.SUBMITTED.toString() },

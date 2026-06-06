@@ -118,7 +118,14 @@ export async function getAdmissionDocumentBundle(admissionId: string): Promise<A
     include: {
       program: {
         include: {
-          feeStructures: true,
+          feeStructures: {
+            where: {
+              feeCode: { not: null },
+              isEnabled: true,
+              amount: { gt: 0 },
+            },
+            orderBy: { createdAt: "asc" },
+          },
         },
       },
       documents: {

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { CalendarDays } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { AdmissionStatus, ApplicationDocumentStatus, DocumentType, Prisma } from "@prisma/client";
@@ -262,7 +263,6 @@ export function AdmissionWorkbench({ admissions, programs, formConfig }: Admissi
   }, [admissions, search]);
 
   const isLocalhostLink = publicFormUrl.includes("localhost");
-  const requiredDocuments = formConfig.requiredDocuments.filter((item) => item.enabled);
   const selectedProgram = manualAdmission.programSlug
     ? programs.find((program) => program.slug === manualAdmission.programSlug)
     : undefined;
@@ -402,7 +402,7 @@ export function AdmissionWorkbench({ admissions, programs, formConfig }: Admissi
             <p className="text-sm font-semibold uppercase tracking-[0.22em] text-gold">Front Desk Admission Entry</p>
             <h3 className="mt-2 font-display text-3xl text-navy">Create a full application from the office desk</h3>
             <p className="mt-3 max-w-4xl text-sm leading-7 text-navy/68">
-              Capture child details, father/mother details, choose the primary portal parent, upload all required documents, and open a printable admission packet immediately after saving.
+              Capture child details, father/mother details, choose the primary portal parent, attach documents when available, and open a printable admission packet immediately after saving.
             </p>
           </div>
         </div>
@@ -431,8 +431,10 @@ export function AdmissionWorkbench({ admissions, programs, formConfig }: Admissi
               <p className="text-sm font-semibold uppercase tracking-[0.18em] text-gold">Child details</p>
               <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 <input value={manualAdmission.childName} onChange={(e) => setManualAdmission((current) => ({ ...current, childName: e.target.value }))} placeholder="Child full name" className={inputClassName()} />
-                <div>
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-navy/55">DOB of child</p>
+                <label className="rounded-[1.15rem] border border-navy/10 bg-white px-4 py-3 transition focus-within:border-gold/60 focus-within:ring-2 focus-within:ring-gold/10">
+                  <span className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-navy/45">Date of birth</span>
+                  <span className="mt-2 flex items-center gap-3">
+                    <CalendarDays className="h-5 w-5 shrink-0 text-gold" />
                   <input
                     type="date"
                     value={manualAdmission.childDob}
@@ -443,9 +445,11 @@ export function AdmissionWorkbench({ admissions, programs, formConfig }: Admissi
                         childAge: getAgeLabel(e.target.value),
                       }))
                     }
-                    className={inputClassName()}
+                    className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-navy outline-none"
                   />
-                </div>
+                  </span>
+                  <span className="mt-2 block text-xs text-navy/45">Age is calculated after selecting the date.</span>
+                </label>
                 <input
                   value={manualAdmission.childAge}
                   readOnly
@@ -579,10 +583,10 @@ export function AdmissionWorkbench({ admissions, programs, formConfig }: Admissi
           <section className="rounded-[1.4rem] bg-[#fbf7f0] p-5">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
               <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-gold">Required documents</p>
-                <p className="mt-2 text-sm leading-7 text-navy/68">Upload all supporting proofs now so the record is ready for verification, printing, and hard-copy backup.</p>
+                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-gold">Supporting documents</p>
+                <p className="mt-2 text-sm leading-7 text-navy/68">Upload proofs when parents have them. The admission can still be created and documents can be added later.</p>
               </div>
-              <p className="text-xs text-navy/55">These uploads are stored with the admission record.</p>
+              <p className="text-xs text-navy/55">Optional uploads are stored with the admission record.</p>
             </div>
             <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               {requiredDocumentUploadKeys.map((document) => (

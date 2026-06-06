@@ -132,6 +132,7 @@ export default async function AdminStudentDetailPage({ params }: { params: Promi
             <EntityDeleteButton
               endpoint={`/api/admin/students/${student.id}`}
               redirectTo="/admin/students"
+              successMessage="Student record deleted successfully."
               confirmMessage={`Delete ${student.firstName}'s student record and linked transactional data?`}
             />
           </div>

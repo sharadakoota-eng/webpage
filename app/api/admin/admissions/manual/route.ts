@@ -56,16 +56,6 @@ export async function POST(request: Request) {
     ) as Record<string, string>;
 
     const body = admissionSchema.parse(raw);
-    const missingDocuments = admissionDocumentTypes.filter((document) => {
-      const file = formData.get(document.key);
-      return !(file instanceof File) || file.size === 0;
-    });
-    if (missingDocuments.length > 0) {
-      return NextResponse.json(
-        { success: false, message: `Required documents missing: ${missingDocuments.map((document) => document.label).join(", ")}.` },
-        { status: 400 },
-      );
-    }
     const primaryParent = body.primaryParent as AdmissionPrimaryParent;
     const primaryParentName =
       primaryParent === "MOTHER"

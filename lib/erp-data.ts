@@ -261,7 +261,14 @@ export async function getParentPortalData(userId?: string) {
                 include: {
                   program: {
                     include: {
-                      feeStructures: true,
+                      feeStructures: {
+                        where: {
+                          feeCode: { not: null },
+                          isEnabled: true,
+                          amount: { gt: 0 },
+                        },
+                        orderBy: { createdAt: "asc" },
+                      },
                     },
                   },
                 },

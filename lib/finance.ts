@@ -25,6 +25,11 @@ export async function ensureProgramFeeReady(programId: string, tx: TxClient | ty
     where: { id: programId },
     include: {
       feeStructures: {
+        where: {
+          feeCode: { not: null },
+          isEnabled: true,
+          amount: { gt: 0 },
+        },
         orderBy: { createdAt: "asc" },
       },
     },
@@ -38,7 +43,7 @@ export async function ensureProgramFeeReady(programId: string, tx: TxClient | ty
     return { program, feeStructures: [] };
   }
 
-  const feeStructures = program.feeStructures.filter((fee) => fee.isEnabled && Number(fee.amount) > 0);
+  const feeStructures = program.feeStructures.filter((fee) => fee.feeCode && fee.isEnabled && Number(fee.amount) > 0);
   if (feeStructures.length === 0) {
     throw new Error("Please set price for this program before proceeding.");
   }

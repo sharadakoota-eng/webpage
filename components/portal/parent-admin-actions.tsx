@@ -32,8 +32,14 @@ export function ParentAdminActions({ parentId, students }: ParentAdminActionsPro
         return;
       }
 
-      setMessage(result.message ?? successMessage);
+      const finalMessage = result.message ?? successMessage;
+      setMessage(finalMessage);
       setTargetEmail("");
+      if (payload.action === "deleteParent") {
+        router.push(`/admin/parents?notice=${encodeURIComponent(finalMessage)}`);
+        router.refresh();
+        return;
+      }
       router.refresh();
     });
   }

@@ -8,12 +8,14 @@ export const revalidate = 0;
 type PageProps = {
   searchParams?: Promise<{
     q?: string;
+    notice?: string;
   }>;
 };
 
 export default async function AdminParentsPage({ searchParams }: PageProps) {
   const params = (await searchParams) ?? {};
   const query = params.q?.trim() ?? "";
+  const notice = params.notice?.trim() ?? "";
 
   const parents = await prisma.parent.findMany({
     where: query
@@ -55,6 +57,12 @@ export default async function AdminParentsPage({ searchParams }: PageProps) {
 
   return (
     <div className="space-y-8">
+      {notice ? (
+        <div className="rounded-[1.15rem] bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          {notice}
+        </div>
+      ) : null}
+
       <section className="rounded-[2rem] bg-white p-8 shadow-card">
         <p className="text-sm font-semibold uppercase tracking-[0.24em] text-gold">Parents</p>
         <h1 className="mt-2 font-display text-4xl text-navy">Family directory and portal visibility</h1>

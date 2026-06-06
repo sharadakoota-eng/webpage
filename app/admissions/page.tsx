@@ -57,9 +57,12 @@ export default async function AdmissionsPage() {
       orderBy: { name: "asc" },
       include: {
         feeStructures: {
-          where: { isEnabled: true },
+          where: {
+            feeCode: { not: null },
+            isEnabled: true,
+            amount: { gt: 0 },
+          },
           orderBy: { createdAt: "desc" },
-          take: 3,
         },
       },
     }),

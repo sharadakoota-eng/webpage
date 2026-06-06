@@ -270,6 +270,11 @@ export function AdmissionRecordDesk({
 
       setState("success");
       setMessage(successMessage);
+      if (payload.action === "deleteAdmission") {
+        router.push(`/admin/admissions?notice=${encodeURIComponent(data.message ?? successMessage)}`);
+        router.refresh();
+        return;
+      }
       router.refresh();
     } catch (error) {
       setState("error");

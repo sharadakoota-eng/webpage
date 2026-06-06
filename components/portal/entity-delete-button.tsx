@@ -8,6 +8,7 @@ type EntityDeleteButtonProps = {
   label?: string;
   confirmMessage?: string;
   redirectTo?: string;
+  successMessage?: string;
   className?: string;
 };
 
@@ -16,6 +17,7 @@ export function EntityDeleteButton({
   label = "Delete",
   confirmMessage = "Delete this record?",
   redirectTo,
+  successMessage = "Record deleted successfully.",
   className,
 }: EntityDeleteButtonProps) {
   const router = useRouter();
@@ -42,11 +44,13 @@ export function EntityDeleteButton({
             }
 
             if (redirectTo) {
-              router.push(redirectTo);
+              const separator = redirectTo.includes("?") ? "&" : "?";
+              router.push(`${redirectTo}${separator}notice=${encodeURIComponent(result.message ?? successMessage)}`);
               router.refresh();
               return;
             }
 
+            setFeedback(result.message ?? successMessage);
             router.refresh();
           });
         }}
@@ -58,7 +62,7 @@ export function EntityDeleteButton({
       >
         {isPending ? "Deleting..." : label}
       </button>
-      {feedback ? <p className="text-sm text-red-600">{feedback}</p> : null}
+      {feedback ? <p className={`text-sm ${feedback.toLowerCase().includes("unable") ? "text-red-600" : "text-emerald-700"}`}>{feedback}</p> : null}
     </div>
   );
 }

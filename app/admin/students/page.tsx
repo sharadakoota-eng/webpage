@@ -15,6 +15,7 @@ type PageProps = {
     q?: string;
     classId?: string;
     programId?: string;
+    notice?: string;
   }>;
 };
 
@@ -23,6 +24,7 @@ export default async function AdminStudentsPage({ searchParams }: PageProps) {
   const query = params.q?.trim() ?? "";
   const classId = params.classId?.trim() ?? "";
   const programId = params.programId?.trim() ?? "";
+  const notice = params.notice?.trim() ?? "";
 
   const [classes, programs, students] = await Promise.all([
     prisma.class.findMany({
@@ -105,6 +107,12 @@ export default async function AdminStudentsPage({ searchParams }: PageProps) {
 
   return (
     <div className="space-y-8">
+      {notice ? (
+        <div className="rounded-[1.15rem] bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          {notice}
+        </div>
+      ) : null}
+
       <section className="rounded-[2rem] bg-white p-8 shadow-card">
         <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
           <div className="max-w-3xl">

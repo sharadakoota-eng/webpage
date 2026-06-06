@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { CalendarDays } from "lucide-react";
 import type { AdmissionFormConfig } from "@/lib/admin-config";
 import { admissionDocumentTypes } from "@/lib/admissions";
 
@@ -112,7 +113,7 @@ export function AdmissionForm({ formConfig, programs }: AdmissionFormProps) {
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
 
-  const requiredDocs = formConfig.requiredDocuments.filter((item) => item.enabled);
+  const enabledDocs = formConfig.requiredDocuments.filter((item) => item.enabled);
   const primaryPhone =
     values.primaryParent === "MOTHER"
       ? values.motherPhone
@@ -137,7 +138,6 @@ export function AdmissionForm({ formConfig, programs }: AdmissionFormProps) {
     !values.addressLine1.trim() ? "Address" : null,
     !values.emergencyContactName.trim() ? "Emergency contact" : null,
     !values.emergencyContactPhone.trim() ? "Emergency phone" : null,
-    ...requiredDocs.map((document) => (!files[document.key] ? document.label : null)),
   ].filter(Boolean);
   const canSubmit = missingRequiredFields.length === 0 && status !== "loading";
 
@@ -204,10 +204,20 @@ export function AdmissionForm({ formConfig, programs }: AdmissionFormProps) {
           <p className="text-sm font-semibold uppercase tracking-[0.22em] text-gold">Child Details</p>
           <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <input required value={values.childName} onChange={(e) => updateValue("childName", e.target.value)} placeholder={`${labelFor("childName")} *`} className={inputClassName()} />
-            <div>
-              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-navy/55">DOB of child</p>
-              <input required type="date" value={values.childDob} onChange={(e) => updateValue("childDob", e.target.value)} className={inputClassName()} />
-            </div>
+            <label className="rounded-[1.25rem] border border-navy/10 bg-white px-4 py-3 transition focus-within:border-gold/60 focus-within:ring-2 focus-within:ring-gold/10">
+              <span className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-navy/45">Date of birth *</span>
+              <span className="mt-2 flex items-center gap-3">
+                <CalendarDays className="h-5 w-5 shrink-0 text-gold" />
+                <input
+                  required
+                  type="date"
+                  value={values.childDob}
+                  onChange={(e) => updateValue("childDob", e.target.value)}
+                  className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-navy outline-none"
+                />
+              </span>
+              <span className="mt-2 block text-xs text-navy/45">Select from the calendar or type the date.</span>
+            </label>
             <input required value={values.childAge} onChange={(e) => updateValue("childAge", e.target.value)} placeholder={`${labelFor("childAge")} *`} className={inputClassName()} />
             <input required value={values.childGender} onChange={(e) => updateValue("childGender", e.target.value)} placeholder={`${labelFor("childGender")} *`} className={inputClassName()} />
             <input value={values.childBloodGroup} onChange={(e) => updateValue("childBloodGroup", e.target.value)} placeholder={labelFor("childBloodGroup")} className={inputClassName()} />
@@ -295,23 +305,21 @@ export function AdmissionForm({ formConfig, programs }: AdmissionFormProps) {
           <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.22em] text-gold">Documents</p>
-              <h3 className="mt-2 font-display text-3xl text-navy">Upload all required proofs in one place</h3>
+              <h3 className="mt-2 font-display text-3xl text-navy">Upload supporting proofs when available</h3>
             </div>
             <p className="max-w-2xl text-sm leading-7 text-navy/68">
-              The school office will verify these documents manually before approval. Upload clear copies for faster review.
+              The school office can create the admission even if documents are not ready yet. Upload clear copies here when parents have them.
             </p>
           </div>
           <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {requiredDocs.map((document) => {
+            {enabledDocs.map((document) => {
               const match = admissionDocumentTypes.find((item) => item.key === document.key);
               if (!match) return null;
 
               return (
                 <label key={document.key} className="rounded-[1.2rem] bg-white p-4 shadow-card">
-                  <span className="block text-sm font-semibold text-navy">
-                    {document.label} {document.required ? <span className="text-red-600">*</span> : null}
-                  </span>
-                  <span className="mt-1 block text-xs text-navy/55">{document.required ? "Required" : "Optional"}</span>
+                  <span className="block text-sm font-semibold text-navy">{document.label}</span>
+                  <span className="mt-1 block text-xs text-navy/55">Optional</span>
                   <input
                     type="file"
                     onChange={(e) => setFiles((current) => ({ ...current, [document.key]: e.target.files?.[0] ?? null }))}
