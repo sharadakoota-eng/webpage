@@ -30,21 +30,26 @@ const COLORS = {
 const logoBytesPromise = fs.readFile(path.join(process.cwd(), "assets", "logo.png"));
 
 function wrapText(text: string, font: PDFFont, size: number, maxWidth: number) {
-  const chunks = text.split(/\s+/).filter(Boolean);
   const lines: string[] = [];
-  let current = "";
 
-  for (const chunk of chunks) {
-    const candidate = current ? `${current} ${chunk}` : chunk;
-    if (font.widthOfTextAtSize(candidate, size) > maxWidth && current) {
-      lines.push(current);
-      current = chunk;
-    } else {
-      current = candidate;
+  for (const paragraph of text.split(/\r?\n/)) {
+    const chunks = paragraph.split(/\s+/).filter(Boolean);
+    let current = "";
+
+    for (const chunk of chunks) {
+      const candidate = current ? `${current} ${chunk}` : chunk;
+      if (font.widthOfTextAtSize(candidate, size) > maxWidth && current) {
+        lines.push(current);
+        current = chunk;
+      } else {
+        current = candidate;
+      }
     }
+
+    if (current) lines.push(current);
+    if (!chunks.length) lines.push("");
   }
 
-  if (current) lines.push(current);
   return lines.length ? lines : [""];
 }
 

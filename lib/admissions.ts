@@ -88,13 +88,14 @@ export const primaryParentLabelMap: Record<AdmissionPrimaryParent, string> = {
   GUARDIAN: "Guardian",
 };
 
-export type AdmissionPipelineStage = "SUBMITTED" | "UNDER_REVIEW" | "APPROVED" | "REJECTED" | "ENROLLED";
+export type AdmissionPipelineStage = "SUBMITTED" | "UNDER_REVIEW" | "APPROVED" | "REJECTED" | "CANCELLED" | "ENROLLED";
 
 export const admissionPipelineStageLabelMap: Record<AdmissionPipelineStage, string> = {
   SUBMITTED: "Submitted",
   UNDER_REVIEW: "Under Review",
   APPROVED: "Approved",
   REJECTED: "Rejected",
+  CANCELLED: "Cancelled",
   ENROLLED: "Enrolled",
 };
 
@@ -104,6 +105,7 @@ export function deriveAdmissionPipelineStage(input: {
   parentId?: string | null;
   enrolledAt?: Date | string | null;
 }) {
+  if (input.status === AdmissionStatus.CANCELLED) return "CANCELLED" satisfies AdmissionPipelineStage;
   if (input.studentId || input.parentId || input.enrolledAt) return "ENROLLED" satisfies AdmissionPipelineStage;
   if (input.status === AdmissionStatus.REJECTED) return "REJECTED" satisfies AdmissionPipelineStage;
   if (input.status === AdmissionStatus.APPROVED) return "APPROVED" satisfies AdmissionPipelineStage;

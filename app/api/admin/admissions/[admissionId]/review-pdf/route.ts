@@ -18,17 +18,21 @@ const COLORS = {
 };
 
 function wrap(text: string, font: PDFFont, size: number, maxWidth: number) {
-  const words = text.split(/\s+/);
   const lines: string[] = [];
-  let current = "";
-  for (const word of words) {
-    const candidate = current ? `${current} ${word}` : word;
-    if (font.widthOfTextAtSize(candidate, size) > maxWidth && current) {
-      lines.push(current);
-      current = word;
-    } else current = candidate;
+
+  for (const paragraph of text.split(/\r?\n/)) {
+    const words = paragraph.split(/\s+/).filter(Boolean);
+    let current = "";
+    for (const word of words) {
+      const candidate = current ? `${current} ${word}` : word;
+      if (font.widthOfTextAtSize(candidate, size) > maxWidth && current) {
+        lines.push(current);
+        current = word;
+      } else current = candidate;
+    }
+    if (current) lines.push(current);
+    if (!words.length) lines.push("");
   }
-  if (current) lines.push(current);
   return lines.length ? lines : [""];
 }
 
@@ -87,13 +91,18 @@ export async function GET(_request: Request, { params }: { params: Promise<{ adm
 
   y -= 174;
   section(page, MARGIN, y, WIDTH, 170, "Structured Notes", bodyBold);
+  let noteY = y - 56;
   adminReview.structuredNotes.forEach(([label, value], index) => {
-    page.drawText(`${label}:`, { x: MARGIN + 16, y: y - 56 - index * 26, size: 9.5, font: bodyBold, color: COLORS.navy });
-    page.drawText(value, { x: MARGIN + 140, y: y - 56 - index * 26, size: 9.5, font: body, color: COLORS.body });
+    const lines = wrap(value, body, 9.5, WIDTH - 170);
+    page.drawText(`${label}:`, { x: MARGIN + 16, y: noteY, size: 9.5, font: bodyBold, color: COLORS.navy });
+    lines.forEach((line, lineIndex) => {
+      page.drawText(line, { x: MARGIN + 140, y: noteY - lineIndex * 11, size: 9.5, font: body, color: COLORS.body });
+    });
+    noteY -= Math.max(26, lines.length * 11 + 8);
   });
   page.drawText(`Review Notes: ${adminReview.reviewNotes ?? "No review notes yet."}`, {
     x: MARGIN + 16,
-    y: y - 56 - adminReview.structuredNotes.length * 26 - 8,
+    y: noteY - 8,
     size: 9.5,
     font: body,
     color: COLORS.body,

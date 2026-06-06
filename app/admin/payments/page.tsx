@@ -250,10 +250,12 @@ export default async function AdminPaymentsPage({ searchParams }: PageProps) {
           name: program.name,
           category: program.category,
         }))}
-        invoices={dueInvoices.map((invoice) => ({
+        invoices={invoices.map((invoice) => ({
           id: invoice.id,
           invoiceNumber: invoice.invoiceNumber,
           amount: invoice.amount.toString(),
+          dueDate: invoice.dueDate.toISOString().slice(0, 10),
+          status: invoice.status,
           studentLabel: `${invoice.student.firstName} ${invoice.student.lastName ?? ""}`.trim(),
         }))}
       />

@@ -33,6 +33,7 @@ enum AdmissionStatus {
   APPROVED
   REJECTED
   WAITLISTED
+  CANCELLED
 }
 
 enum AttendanceStatus {
@@ -460,17 +461,20 @@ model ApplicationDocument {
 model FeeStructure {
   id            String     @id @default(cuid())
   programId      String?
+  feeCode       String?
   title         String
   frequency     String
   amount        Decimal    @db.Decimal(10, 2)
   taxPercentage Decimal?   @db.Decimal(5, 2)
   description   String?    @db.Text
+  isEnabled     Boolean    @default(true)
   program       Program?   @relation(fields: [programId], references: [id])
   invoices      Invoice[]
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
 
   @@index([programId])
+  @@index([programId, feeCode])
   @@map("feestructure")
 }
 
@@ -719,6 +723,19 @@ model Setting {
   createdAt    DateTime @default(now())
 
   @@map("setting")
+}
+
+model NumberSequence {
+  id            String   @id @default(cuid())
+  key           String   @unique
+  prefix        String
+  financialYear String
+  lastNumber    Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([prefix, financialYear])
+  @@map("numbersequence")
 }
 
 model LeaveRequest {

@@ -59,6 +59,7 @@ export default async function ParentFeesPage() {
                 })[0];
               const lastPaymentDate = lastPayment?.paidAt ?? lastPayment?.createdAt;
               const lineItems = invoice.lineItems as Record<string, unknown> | null;
+              const isCancelled = invoice.status === InvoiceStatus.CANCELLED;
               const installmentLabel =
                 typeof lineItems?.invoiceType === "string" && lineItems.invoiceType === "PROGRAM_INSTALLMENT"
                   ? `Installment ${lineItems.installmentIndex ?? ""} of ${lineItems.installmentCount ?? ""}`.trim()
@@ -97,17 +98,17 @@ export default async function ParentFeesPage() {
                       </DocumentDownloadButton>
                     ) : null}
                   </div>
-                  {actionablePayments.length > 0 && invoice.status !== InvoiceStatus.PAID ? (
+                  {actionablePayments.length > 0 && invoice.status !== InvoiceStatus.PAID && !isCancelled ? (
                     <p className="mt-2 text-xs uppercase tracking-[0.18em] text-[#b45309]">
                       Payment submitted. Waiting for school verification.
                     </p>
                   ) : null}
-                  {invoice.status !== InvoiceStatus.PAID && actionablePayments.length === 0 ? (
+                  {invoice.status !== InvoiceStatus.PAID && !isCancelled && actionablePayments.length === 0 ? (
                     <div className="mt-4">
                       <RazorpayPaymentButton invoiceId={invoice.id} label="Pay with Razorpay" />
                     </div>
                   ) : null}
-                  {invoice.status !== InvoiceStatus.PAID ? (
+                  {invoice.status !== InvoiceStatus.PAID && !isCancelled ? (
                     <OfflinePaymentUploader invoiceId={invoice.id} />
                   ) : null}
                 </div>

@@ -1,20 +1,19 @@
 import { InvoiceStatus, PaymentStatus, ProgramCategory, Prisma, type Program } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { createSequentialNumber } from "@/lib/numbering";
 
 type TxClient = Prisma.TransactionClient;
 
-function randomSuffix(length = 5) {
-  return Math.floor(Math.random() * 10 ** length)
-    .toString()
-    .padStart(length, "0");
+export function createInvoiceNumber(tx: TxClient | typeof prisma = prisma) {
+  return createSequentialNumber("INV", tx);
 }
 
-export function createInvoiceNumber() {
-  return `INV-${new Date().getFullYear()}-${randomSuffix()}`;
+export function createManualInvoiceNumber(tx: TxClient | typeof prisma = prisma) {
+  return createSequentialNumber("MINV", tx);
 }
 
-export function createReceiptNumber() {
-  return `RCT-${new Date().getFullYear()}-${randomSuffix()}`;
+export function createReceiptNumber(tx: TxClient | typeof prisma = prisma) {
+  return createSequentialNumber("RCT", tx);
 }
 
 export function isRecurringProgramFeeManaged(program: Pick<Program, "category"> | null | undefined) {
@@ -39,7 +38,7 @@ export async function ensureProgramFeeReady(programId: string, tx: TxClient | ty
     return { program, feeStructures: [] };
   }
 
-  const feeStructures = program.feeStructures.filter((fee) => Number(fee.amount) > 0);
+  const feeStructures = program.feeStructures.filter((fee) => fee.isEnabled && Number(fee.amount) > 0);
   if (feeStructures.length === 0) {
     throw new Error("Please set price for this program before proceeding.");
   }
@@ -96,7 +95,7 @@ export async function createProgramInvoiceForStudent(args: {
 
   return await tx.invoice.create({
     data: {
-      invoiceNumber: createInvoiceNumber(),
+      invoiceNumber: await createInvoiceNumber(tx),
       studentId,
       amount,
       dueDate,
@@ -184,7 +183,7 @@ export async function createInstallmentInvoicesForStudent(args: {
     const dueDate = dueDates[index] ?? new Date(Date.now() + (index + 1) * 7 * 24 * 60 * 60 * 1000);
     const invoice = await tx.invoice.create({
       data: {
-        invoiceNumber: createInvoiceNumber(),
+        invoiceNumber: await createInvoiceNumber(tx),
         studentId,
         amount,
         dueDate,
@@ -226,7 +225,7 @@ export async function createManualInvoice(args: {
 
   return await tx.invoice.create({
     data: {
-      invoiceNumber: createInvoiceNumber(),
+      invoiceNumber: await createManualInvoiceNumber(tx),
       studentId,
       amount,
       dueDate,
@@ -293,7 +292,7 @@ export async function recordCashPayment(args: {
   if (!invoice.receipt && nextInvoiceStatus === InvoiceStatus.PAID) {
     await tx.receipt.create({
       data: {
-        receiptNumber: createReceiptNumber(),
+        receiptNumber: await createReceiptNumber(tx),
         studentId: invoice.studentId,
         invoiceId,
         paymentId: payment.id,

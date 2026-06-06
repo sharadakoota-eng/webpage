@@ -6,22 +6,13 @@ import { defaultAdmissionFormConfig } from "@/lib/admin-config";
 import { buildAdmissionNotes, documentTypeLabelMap } from "@/lib/admissions";
 import { requirePortalRole } from "@/lib/erp-auth";
 import { createInstallmentInvoicesForStudent, createProgramInvoiceForStudent, ensureProgramFeeReady } from "@/lib/finance";
+import { createSequentialNumber } from "@/lib/numbering";
 import { triggerAdmissionApprovedEvent, triggerDocumentRejectedEvent, triggerParentPortalReadyEvent } from "@/lib/notifications/events";
 import { prisma } from "@/lib/prisma";
+import { deleteAdmissionRecordCascade } from "@/lib/student-record-cleanup";
 
-function createApplicationNumber() {
-  const date = new Date();
-  return `ADM-${date.getFullYear()}-${Math.floor(Math.random() * 100000)
-    .toString()
-    .padStart(5, "0")}`;
-}
-
-function createAdmissionNumber() {
-  const date = new Date();
-  return `SKM-${date.getFullYear()}-${Math.floor(Math.random() * 1000)
-    .toString()
-    .padStart(3, "0")}`;
-}
+const createApplicationNumber = (tx?: Prisma.TransactionClient) => createSequentialNumber("ADM", tx ?? prisma);
+const createAdmissionNumber = (tx?: Prisma.TransactionClient) => createSequentialNumber("SKM", tx ?? prisma);
 
 const payloadSchema = z.discriminatedUnion("action", [
   z.object({
@@ -79,6 +70,11 @@ const payloadSchema = z.discriminatedUnion("action", [
   z.object({
     action: z.literal("deleteAdmission"),
     admissionId: z.string().min(1),
+  }),
+  z.object({
+    action: z.literal("changeEnrolledProgram"),
+    admissionId: z.string().min(1),
+    programId: z.string().min(1),
   }),
   z.object({
     action: z.literal("readmitNextYear"),
@@ -156,7 +152,7 @@ export async function POST(request: Request) {
     if (payload.action === "createAdmission") {
       const admission = await prisma.admission.create({
         data: {
-          applicationNumber: createApplicationNumber(),
+          applicationNumber: await createApplicationNumber(),
           shareToken: crypto.randomUUID(),
           parentName: payload.parentName,
           childName: payload.childName,
@@ -315,11 +311,112 @@ export async function POST(request: Request) {
     }
 
     if (payload.action === "deleteAdmission") {
-      await prisma.admission.delete({
-        where: { id: admission.id },
+      await prisma.$transaction(
+        async (tx) => {
+          const result = await deleteAdmissionRecordCascade(tx, admission.id);
+
+          await tx.auditLog.create({
+            data: {
+              userId: session.sub,
+              action: "ADMISSION_DELETED",
+              entityType: "Admission",
+              entityId: admission.id,
+              details: {
+                applicationNumber: admission.applicationNumber,
+                deletedLinkedStudent: result.deletedStudent,
+                cleanedParentIds: result.cleanedParentIds,
+              },
+            },
+          });
+        },
+        { timeout: 20000 },
+      );
+
+      return NextResponse.json({ success: true, message: "Admission and linked records deleted." });
+    }
+
+    if (payload.action === "changeEnrolledProgram") {
+      if (!admission.studentId || !admission.parentId || !admission.enrolledAt) {
+        return NextResponse.json(
+          { success: false, message: "Program can be changed only after admission enrollment is completed." },
+          { status: 400 },
+        );
+      }
+
+      if (payload.programId === admission.programId) {
+        return NextResponse.json({ success: true, message: "Program is already assigned." });
+      }
+
+      const nextProgram = await prisma.program.findUnique({
+        where: { id: payload.programId },
+        select: { id: true, name: true, isPublished: true },
       });
 
-      return NextResponse.json({ success: true });
+      if (!nextProgram) {
+        return NextResponse.json({ success: false, message: "Selected program was not found." }, { status: 404 });
+      }
+
+      await prisma.$transaction(async (tx) => {
+        const previousEnrollment = await tx.enrollment.findFirst({
+          where: {
+            studentId: admission.studentId!,
+            endDate: null,
+          },
+          orderBy: { createdAt: "desc" },
+        });
+
+        if (previousEnrollment) {
+          await tx.enrollment.update({
+            where: { id: previousEnrollment.id },
+            data: {
+              endDate: new Date(),
+              notes: `${previousEnrollment.notes ?? ""}\nProgram changed from admission desk ${admission.applicationNumber}`.trim(),
+            },
+          });
+        }
+
+        await tx.enrollment.create({
+          data: {
+            parentId: admission.parentId!,
+            studentId: admission.studentId!,
+            programId: nextProgram.id,
+            startDate: new Date(),
+            notes: `Program changed from admission ${admission.applicationNumber}. Existing invoices were not changed.`,
+          },
+        });
+
+        await tx.admission.update({
+          where: { id: admission.id },
+          data: {
+            programId: nextProgram.id,
+            admissionProfile: {
+              ...(admission.admissionProfile && typeof admission.admissionProfile === "object" && !Array.isArray(admission.admissionProfile)
+                ? (admission.admissionProfile as Record<string, unknown>)
+                : {}),
+              programChangedAt: new Date().toISOString(),
+              previousProgramId: admission.programId,
+              feePlanStatus: "Program changed after enrollment. Existing invoices unchanged.",
+            },
+          },
+        });
+
+        await tx.auditLog.create({
+          data: {
+            userId: session.sub,
+            action: "ADMISSION_PROGRAM_CHANGED",
+            entityType: "Admission",
+            entityId: admission.id,
+            details: {
+              applicationNumber: admission.applicationNumber,
+              previousProgramId: admission.programId,
+              nextProgramId: nextProgram.id,
+              existingInvoicesUnchanged: true,
+            },
+          },
+        });
+      });
+
+      return NextResponse.json({ success: true, message: "Program changed. Existing invoices were not changed." });
     }
 
     if (payload.action === "readmitNextYear") {
@@ -338,7 +435,7 @@ export async function POST(request: Request) {
 
       const nextAdmission = await prisma.admission.create({
         data: {
-          applicationNumber: createApplicationNumber(),
+          applicationNumber: await createApplicationNumber(),
           shareToken: crypto.randomUUID(),
           parentName: admission.parentName,
           childName: admission.childName,
@@ -553,7 +650,7 @@ export async function POST(request: Request) {
         admission.student ??
         (await tx.student.create({
           data: {
-            admissionNumber: createAdmissionNumber(),
+            admissionNumber: await createAdmissionNumber(tx),
             firstName,
             lastName,
             dateOfBirth: admission.childDob,

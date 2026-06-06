@@ -53,9 +53,11 @@ export const revalidate = 0;
 export default async function AdmissionsPage() {
   const [programFees, formConfig] = await Promise.all([
     prisma.program.findMany({
+      where: { isPublished: true },
       orderBy: { name: "asc" },
       include: {
         feeStructures: {
+          where: { isEnabled: true },
           orderBy: { createdAt: "desc" },
           take: 3,
         },

@@ -188,6 +188,7 @@ export function AdmissionRecordDesk({
   const pipelineStage = deriveAdmissionPipelineStage({ status, parentId, studentId, enrolledAt: enrolledAtLabel });
   const isApproved = pipelineStage === "APPROVED";
   const isEnrolled = pipelineStage === "ENROLLED";
+  const currentProgramName = programs.find((item) => item.id === currentProgramId)?.name ?? "Current program";
 
   function syncInstallmentDates(count: number) {
     setInstallmentDates((current) => {
@@ -348,6 +349,8 @@ export function AdmissionRecordDesk({
             className={`inline-flex rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] ${
               pipelineStage === "ENROLLED"
                 ? "bg-emerald-50 text-emerald-700"
+                : pipelineStage === "CANCELLED"
+                  ? "bg-slate-100 text-slate-600"
                 : pipelineStage === "APPROVED"
                   ? "bg-sky-50 text-sky-700"
                   : pipelineStage === "REJECTED"
@@ -640,10 +643,14 @@ export function AdmissionRecordDesk({
               </button>
               <button
                 type="button"
-                onClick={() => postAction({ action: "deleteAdmission", admissionId }, "Admission deleted.")}
+                onClick={() => {
+                  if (window.confirm("Delete this admission? Any linked student, invoices, and orphan parent portal record will also be removed.")) {
+                    void postAction({ action: "deleteAdmission", admissionId }, "Admission and linked records deleted.");
+                  }
+                }}
                 className="rounded-full border border-rose-200 px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-rose-700"
               >
-                Delete
+                Delete admission
               </button>
             </div>
             <div className="mt-4">
@@ -656,7 +663,7 @@ export function AdmissionRecordDesk({
                 }}
                 className="w-full rounded-[1rem] border border-navy/10 bg-[#fcfcfd] px-4 py-3 text-sm text-navy outline-none transition focus:border-navy/25"
               >
-                {["DRAFT", "SUBMITTED", "UNDER_REVIEW", "DOCUMENTS_PENDING", "APPROVED", "REJECTED", "WAITLISTED"].map((option) => (
+                {["DRAFT", "SUBMITTED", "UNDER_REVIEW", "DOCUMENTS_PENDING", "APPROVED", "REJECTED", "WAITLISTED", "CANCELLED"].map((option) => (
                   <option key={option} value={option}>
                     {option.replaceAll("_", " ")}
                   </option>
@@ -736,6 +743,11 @@ export function AdmissionRecordDesk({
             <div className="mt-5 rounded-[1.2rem] bg-cream px-4 py-4 text-sm leading-7 text-navy/68">
               Parent portal is created only after approval. Class and program selected here will be carried into enrollment.
             </div>
+            {isEnrolled ? (
+              <div className="mt-4 rounded-[1.2rem] border border-amber-200 bg-amber-50 px-4 py-4 text-sm leading-7 text-amber-800">
+                Changing program may affect future fee structure. Existing invoices will not change unless admin chooses to regenerate/update invoice.
+              </div>
+            ) : null}
             <div className="mt-5">
               <button
                 type="button"
@@ -758,6 +770,32 @@ export function AdmissionRecordDesk({
               >
                 Complete enrollment
               </button>
+              {isEnrolled ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const nextProgramName = programs.find((item) => item.id === programId)?.name ?? "selected program";
+                    if (
+                      window.confirm(
+                        `Change enrolled program from ${currentProgramName} to ${nextProgramName}? Existing invoices will not change unless admin edits or regenerates them.`,
+                      )
+                    ) {
+                      void postAction(
+                        {
+                          action: "changeEnrolledProgram",
+                          admissionId,
+                          programId,
+                        },
+                        "Program changed. Existing invoices were not changed.",
+                      );
+                    }
+                  }}
+                  disabled={!programId || programId === currentProgramId}
+                  className="mt-3 w-full rounded-full border border-amber-200 px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-amber-700 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Change enrolled program
+                </button>
+              ) : null}
             </div>
           </section>
         </div>

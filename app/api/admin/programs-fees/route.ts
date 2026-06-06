@@ -26,6 +26,19 @@ const payloadSchema = z.discriminatedUnion("action", [
     programId: z.string().min(1),
     isPublished: z.boolean(),
   }),
+  z.object({
+    action: z.literal("saveStandardFees"),
+    programId: z.string().min(1),
+    fees: z.array(
+      z.object({
+        feeCode: z.string().min(1),
+        title: z.string().min(2),
+        frequency: z.string().min(2),
+        enabled: z.boolean(),
+        amount: z.coerce.number().min(0),
+      }),
+    ),
+  }),
 ]);
 
 export async function POST(request: Request) {
@@ -44,6 +57,49 @@ export async function POST(request: Request) {
       });
 
       return NextResponse.json({ success: true });
+    }
+
+    if (payload.action === "saveStandardFees") {
+      const program = await prisma.program.findUnique({
+        where: { id: payload.programId },
+        select: { id: true, category: true },
+      });
+
+      if (!program) {
+        return NextResponse.json({ success: false, message: "Program not found." }, { status: 404 });
+      }
+
+      for (const fee of payload.fees) {
+        const existing = await prisma.feeStructure.findFirst({
+          where: { programId: payload.programId, feeCode: fee.feeCode },
+          orderBy: { createdAt: "desc" },
+        });
+
+        if (existing) {
+          await prisma.feeStructure.update({
+            where: { id: existing.id },
+            data: {
+              title: fee.title,
+              frequency: fee.frequency,
+              amount: fee.amount,
+              isEnabled: fee.enabled,
+            },
+          });
+        } else {
+          await prisma.feeStructure.create({
+            data: {
+              programId: payload.programId,
+              feeCode: fee.feeCode,
+              title: fee.title,
+              frequency: fee.frequency,
+              amount: fee.amount,
+              isEnabled: fee.enabled,
+            },
+          });
+        }
+      }
+
+      return NextResponse.json({ success: true, message: "Program fee configuration saved." });
     }
 
     if (payload.action === "createProgramCost") {

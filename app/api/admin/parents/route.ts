@@ -104,6 +104,10 @@ export async function POST(request: Request) {
         await tx.enrollment.deleteMany({
           where: { parentId: payload.parentId },
         });
+        await tx.leaveRequest.updateMany({
+          where: { parentId: payload.parentId },
+          data: { parentId: null },
+        });
         await tx.parentStudentMap.deleteMany({
           where: { parentId: payload.parentId },
         });

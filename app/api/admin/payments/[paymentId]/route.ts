@@ -2,6 +2,7 @@ import { InvoiceStatus, PaymentStatus, RoleType } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requirePortalRole } from "@/lib/erp-auth";
+import { createReceiptNumber } from "@/lib/finance";
 import { prisma } from "@/lib/prisma";
 
 const payloadSchema = z.discriminatedUnion("action", [
@@ -12,13 +13,6 @@ const payloadSchema = z.discriminatedUnion("action", [
     action: z.literal("reject"),
   }),
 ]);
-
-function createReceiptNumber() {
-  const year = new Date().getFullYear();
-  return `RCT-${year}-${Math.floor(Math.random() * 100000)
-    .toString()
-    .padStart(5, "0")}`;
-}
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ paymentId: string }> }) {
   const session = await requirePortalRole([RoleType.ADMIN, RoleType.SUPER_ADMIN]);
@@ -84,7 +78,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ pa
       if (!payment.invoice.receipt && nextInvoiceStatus === InvoiceStatus.PAID) {
         await tx.receipt.create({
           data: {
-            receiptNumber: createReceiptNumber(),
+            receiptNumber: await createReceiptNumber(tx),
             studentId: payment.invoice.studentId,
             invoiceId: payment.invoiceId,
             paymentId: payment.id,

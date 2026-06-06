@@ -13,9 +13,11 @@ type ProgramFeeManagerProps = {
     isPublished: boolean;
     feeStructures: Array<{
       id: string;
+      feeCode?: string | null;
       title: string;
       frequency: string;
       amount: string;
+      isEnabled?: boolean;
       taxPercentage?: string;
       description?: string | null;
     }>;
@@ -29,26 +31,48 @@ type ProgramFeeManagerProps = {
   }>;
 };
 
+const standardFeeTypes = [
+  { feeCode: "ADMISSION_FEE", title: "Admission Fee", frequency: "One-time" },
+  { feeCode: "MONTHLY_FEE", title: "Monthly Fee", frequency: "Monthly" },
+  { feeCode: "HALF_YEARLY_FEE", title: "Half-Yearly Fee", frequency: "Half-yearly" },
+  { feeCode: "ANNUAL_FEE", title: "Annual Fee", frequency: "Annual" },
+  { feeCode: "BOOK_FEE", title: "Book Fee", frequency: "One-time" },
+  { feeCode: "EXAM_FEE", title: "Exam Fee", frequency: "Term" },
+  { feeCode: "UNIFORM_FEE", title: "Uniform Fee", frequency: "One-time" },
+  { feeCode: "TRANSPORT_FEE", title: "Transport Fee", frequency: "Monthly" },
+] as const;
+
 export function ProgramFeeManager({ programs }: ProgramFeeManagerProps) {
   const router = useRouter();
   const recurringPrograms = programs.filter((program) => program.category.toUpperCase() !== "CAMP");
   const campPrograms = programs.filter((program) => program.category.toUpperCase() === "CAMP");
   const [message, setMessage] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "error" | "success">("idle");
-  const [values, setValues] = useState({
-    programId: recurringPrograms[0]?.id ?? "",
-    title: "Monthly Fee",
-    frequency: "Monthly",
-    amount: "",
-    taxPercentage: "",
-    description: "",
-  });
   const [costValues, setCostValues] = useState({
     programId: recurringPrograms[0]?.id ?? "",
     title: "Lead teacher salary",
     amount: "",
     description: "",
   });
+  const [standardProgramId, setStandardProgramId] = useState(recurringPrograms[0]?.id ?? "");
+  const [standardFees, setStandardFees] = useState(() => buildStandardFees(recurringPrograms[0]));
+
+  function buildStandardFees(program: ProgramFeeManagerProps["programs"][number] | undefined) {
+    return standardFeeTypes.map((feeType) => {
+      const existing = program?.feeStructures.find((fee) => fee.feeCode === feeType.feeCode || fee.title.toLowerCase() === feeType.title.toLowerCase());
+      return {
+        ...feeType,
+        enabled: existing?.isEnabled ?? Boolean(existing),
+        amount: existing?.amount ?? "",
+      };
+    });
+  }
+
+  function changeStandardProgram(programId: string) {
+    const program = recurringPrograms.find((item) => item.id === programId);
+    setStandardProgramId(programId);
+    setStandardFees(buildStandardFees(program));
+  }
 
   async function postAction(payload: Record<string, unknown>, successMessage: string) {
     setStatus("loading");
@@ -68,7 +92,6 @@ export function ProgramFeeManager({ programs }: ProgramFeeManagerProps) {
 
       setStatus("success");
       setMessage(successMessage);
-      setValues((current) => ({ ...current, amount: "", taxPercentage: "", description: "" }));
       setCostValues((current) => ({ ...current, amount: "", description: "" }));
       router.refresh();
     } catch (error) {
@@ -87,59 +110,66 @@ export function ProgramFeeManager({ programs }: ProgramFeeManagerProps) {
 
       <section className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
         <div className="rounded-[2rem] bg-white p-8 shadow-card">
-          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-gold">Fee Configuration</p>
-          <h3 className="mt-2 font-display text-3xl text-navy">Set prices for every program and category</h3>
+          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-gold">Simple Fee Setup</p>
+          <h3 className="mt-2 font-display text-3xl text-navy">Configure default fees in one form</h3>
           <p className="mt-3 text-sm leading-7 text-navy/68">
-            These fee structures should reflect back into admissions, parent portal pricing, and payment records. Use separate plans for monthly fee, full fee, admission fee, or material fee.
+            These defaults apply to new students in the selected program. Student-level overrides should be used only for transport, uniform, admission, or special charges.
           </p>
-
-          <div className="mt-6 grid gap-4 sm:grid-cols-2">
-            <select value={values.programId} onChange={(e) => setValues((c) => ({ ...c, programId: e.target.value }))} className="rounded-2xl border border-navy/10 px-4 py-3">
+          <div className="mt-6 grid gap-4">
+            <select value={standardProgramId} onChange={(e) => changeStandardProgram(e.target.value)} className="rounded-2xl border border-navy/10 px-4 py-3">
               {recurringPrograms.map((program) => (
                 <option key={program.id} value={program.id}>
                   {program.name}
                 </option>
               ))}
             </select>
-            <input value={values.title} onChange={(e) => setValues((c) => ({ ...c, title: e.target.value }))} placeholder="Fee title" className="rounded-2xl border border-navy/10 px-4 py-3" />
-            <select value={values.frequency} onChange={(e) => setValues((c) => ({ ...c, frequency: e.target.value }))} className="rounded-2xl border border-navy/10 px-4 py-3">
-              {["Monthly", "Quarterly", "Half-yearly", "Yearly", "One-time", "Term"].map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
+            <div className="grid gap-3">
+              {standardFees.map((fee, index) => (
+                <div key={fee.feeCode} className="grid gap-3 rounded-[1.15rem] bg-[#fbf7f0] p-4 md:grid-cols-[1fr_160px] md:items-center">
+                  <label className="flex items-center gap-3 text-sm font-semibold text-navy">
+                    <input
+                      type="checkbox"
+                      checked={fee.enabled}
+                      onChange={(event) =>
+                        setStandardFees((current) => current.map((item, itemIndex) => (itemIndex === index ? { ...item, enabled: event.target.checked } : item)))
+                      }
+                    />
+                    {fee.title}
+                    <span className="text-xs font-normal text-navy/55">{fee.frequency}</span>
+                  </label>
+                  <input
+                    value={fee.amount}
+                    onChange={(event) =>
+                      setStandardFees((current) => current.map((item, itemIndex) => (itemIndex === index ? { ...item, amount: event.target.value } : item)))
+                    }
+                    placeholder="Amount"
+                    disabled={!fee.enabled}
+                    className="rounded-xl border border-navy/10 bg-white px-4 py-3 text-sm disabled:opacity-50"
+                  />
+                </div>
               ))}
-            </select>
-            <input value={values.amount} onChange={(e) => setValues((c) => ({ ...c, amount: e.target.value }))} placeholder="Amount" className="rounded-2xl border border-navy/10 px-4 py-3" />
-            <select
-              value={values.taxPercentage}
-              onChange={(e) => setValues((c) => ({ ...c, taxPercentage: e.target.value }))}
-              className="rounded-2xl border border-navy/10 px-4 py-3"
-            >
-              <option value="">No tax</option>
-              <option value="5">GST 5%</option>
-              <option value="12">GST 12%</option>
-              <option value="18">GST 18%</option>
-            </select>
-            <input value={values.description} onChange={(e) => setValues((c) => ({ ...c, description: e.target.value }))} placeholder="Description" className="rounded-2xl border border-navy/10 px-4 py-3" />
-          </div>
-
-          <div className="mt-5 flex flex-wrap gap-3">
+            </div>
             <button
               type="button"
               onClick={() =>
                 postAction(
                   {
-                    action: "createFeeStructure",
-                    ...values,
-                    amount: Number(values.amount || 0),
-                    taxPercentage: values.taxPercentage ? Number(values.taxPercentage) : undefined,
+                    action: "saveStandardFees",
+                    programId: standardProgramId,
+                    fees: standardFees.map((fee) => ({
+                      feeCode: fee.feeCode,
+                      title: fee.title,
+                      frequency: fee.frequency,
+                      enabled: fee.enabled,
+                      amount: Number(fee.amount || 0),
+                    })),
                   },
-                  "Fee structure saved and linked to the selected program.",
+                  "Default fee configuration saved.",
                 )
               }
               className="rounded-full bg-navy px-6 py-3 text-sm font-semibold text-white"
             >
-              {status === "loading" ? "Saving..." : "Add fee structure"}
+              {status === "loading" ? "Saving..." : "Save default fees"}
             </button>
           </div>
         </div>

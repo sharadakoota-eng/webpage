@@ -83,9 +83,11 @@ export default async function AdminProgramsPage() {
         isPublished: program.isPublished,
         feeStructures: program.feeStructures.map((fee) => ({
           id: fee.id,
+          feeCode: fee.feeCode,
           title: fee.title,
           frequency: fee.frequency,
           amount: fee.amount.toString(),
+          isEnabled: fee.isEnabled,
           taxPercentage: fee.taxPercentage?.toString() ?? "",
           description: fee.description,
         })),

@@ -113,6 +113,33 @@ export function AdmissionForm({ formConfig, programs }: AdmissionFormProps) {
   const [message, setMessage] = useState("");
 
   const requiredDocs = formConfig.requiredDocuments.filter((item) => item.enabled);
+  const primaryPhone =
+    values.primaryParent === "MOTHER"
+      ? values.motherPhone
+      : values.primaryParent === "GUARDIAN"
+        ? values.guardianPhone
+        : values.fatherPhone;
+  const primaryEmail =
+    values.primaryParent === "MOTHER"
+      ? values.motherEmail
+      : values.primaryParent === "GUARDIAN"
+        ? values.guardianEmail
+        : values.fatherEmail;
+  const missingRequiredFields = [
+    !values.childName.trim() ? "Child name" : null,
+    !values.childDob ? "DOB" : null,
+    !values.childAge.trim() ? "Age" : null,
+    !values.childGender.trim() ? "Gender" : null,
+    !values.programSlug ? "Program" : null,
+    !values.primaryParent ? "Primary parent" : null,
+    !primaryPhone || primaryPhone.length < 10 ? "Primary parent phone" : null,
+    !primaryEmail ? "Primary parent email" : null,
+    !values.addressLine1.trim() ? "Address" : null,
+    !values.emergencyContactName.trim() ? "Emergency contact" : null,
+    !values.emergencyContactPhone.trim() ? "Emergency phone" : null,
+    ...requiredDocs.map((document) => (!files[document.key] ? document.label : null)),
+  ].filter(Boolean);
+  const canSubmit = missingRequiredFields.length === 0 && status !== "loading";
 
   function updateValue(key: keyof typeof initialValues, value: string) {
     setValues((current) => ({ ...current, [key]: value }));
@@ -125,6 +152,12 @@ export function AdmissionForm({ formConfig, programs }: AdmissionFormProps) {
     setMessage("");
 
     try {
+      if (missingRequiredFields.length > 0) {
+        setStatus("error");
+        setMessage(`Please complete: ${missingRequiredFields.join(", ")}.`);
+        return;
+      }
+
       const formData = new FormData();
       Object.entries(values).forEach(([key, value]) => {
         formData.append(key, value);
@@ -159,6 +192,9 @@ export function AdmissionForm({ formConfig, programs }: AdmissionFormProps) {
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.24em] text-gold">Admission Form</p>
           <h2 className="mt-2 font-display text-4xl text-navy">{formConfig.title}</h2>
+          <p className="mt-2 text-sm text-navy/60">
+            <span className="font-semibold text-red-600">*</span> Required fields
+          </p>
         </div>
         <p className="max-w-2xl text-sm leading-7 text-navy/70">{formConfig.description}</p>
       </div>
@@ -167,18 +203,18 @@ export function AdmissionForm({ formConfig, programs }: AdmissionFormProps) {
         <section className="rounded-[1.7rem] bg-[#fbf7f0] p-6">
           <p className="text-sm font-semibold uppercase tracking-[0.22em] text-gold">Child Details</p>
           <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            <input required value={values.childName} onChange={(e) => updateValue("childName", e.target.value)} placeholder={labelFor("childName")} className={inputClassName()} />
+            <input required value={values.childName} onChange={(e) => updateValue("childName", e.target.value)} placeholder={`${labelFor("childName")} *`} className={inputClassName()} />
             <div>
               <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-navy/55">DOB of child</p>
               <input required type="date" value={values.childDob} onChange={(e) => updateValue("childDob", e.target.value)} className={inputClassName()} />
             </div>
-            <input value={values.childAge} onChange={(e) => updateValue("childAge", e.target.value)} placeholder={labelFor("childAge")} className={inputClassName()} />
-            <input value={values.childGender} onChange={(e) => updateValue("childGender", e.target.value)} placeholder={labelFor("childGender")} className={inputClassName()} />
+            <input required value={values.childAge} onChange={(e) => updateValue("childAge", e.target.value)} placeholder={`${labelFor("childAge")} *`} className={inputClassName()} />
+            <input required value={values.childGender} onChange={(e) => updateValue("childGender", e.target.value)} placeholder={`${labelFor("childGender")} *`} className={inputClassName()} />
             <input value={values.childBloodGroup} onChange={(e) => updateValue("childBloodGroup", e.target.value)} placeholder={labelFor("childBloodGroup")} className={inputClassName()} />
             <input value={values.childAadhaar} onChange={(e) => updateValue("childAadhaar", e.target.value)} placeholder={labelFor("childAadhaar")} className={inputClassName()} />
             <input value={values.previousSchool} onChange={(e) => updateValue("previousSchool", e.target.value)} placeholder={labelFor("previousSchool")} className={inputClassName()} />
             <input value={values.previousGrade} onChange={(e) => updateValue("previousGrade", e.target.value)} placeholder={labelFor("previousGrade")} className={inputClassName()} />
-            <select value={values.programSlug} onChange={(e) => updateValue("programSlug", e.target.value)} className={inputClassName()}>
+            <select required value={values.programSlug} onChange={(e) => updateValue("programSlug", e.target.value)} className={inputClassName()}>
                 <option value="">Select program</option>
                 {programs.map((program) => (
                   <option key={program.slug} value={program.slug}>
@@ -198,8 +234,8 @@ export function AdmissionForm({ formConfig, programs }: AdmissionFormProps) {
             <p className="text-sm font-semibold uppercase tracking-[0.22em] text-gold">Father Details</p>
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <input required value={values.fatherName} onChange={(e) => updateValue("fatherName", e.target.value)} placeholder={labelFor("fatherName")} className={inputClassName()} />
-              <input value={values.fatherPhone} onChange={(e) => updateValue("fatherPhone", e.target.value)} placeholder={labelFor("fatherPhone")} className={inputClassName()} />
-              <input value={values.fatherEmail} onChange={(e) => updateValue("fatherEmail", e.target.value)} placeholder={labelFor("fatherEmail")} className={inputClassName()} />
+              <input value={values.fatherPhone} onChange={(e) => updateValue("fatherPhone", e.target.value)} placeholder={`${labelFor("fatherPhone")}${values.primaryParent === "FATHER" ? " *" : ""}`} className={inputClassName()} />
+              <input value={values.fatherEmail} onChange={(e) => updateValue("fatherEmail", e.target.value)} placeholder={`${labelFor("fatherEmail")}${values.primaryParent === "FATHER" ? " *" : ""}`} className={inputClassName()} />
               <input value={values.fatherQualification} onChange={(e) => updateValue("fatherQualification", e.target.value)} placeholder={labelFor("fatherQualification")} className={inputClassName()} />
               <input value={values.fatherOccupation} onChange={(e) => updateValue("fatherOccupation", e.target.value)} placeholder={labelFor("fatherOccupation")} className={inputClassName()} />
             </div>
@@ -209,8 +245,8 @@ export function AdmissionForm({ formConfig, programs }: AdmissionFormProps) {
             <p className="text-sm font-semibold uppercase tracking-[0.22em] text-gold">Mother Details</p>
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <input required value={values.motherName} onChange={(e) => updateValue("motherName", e.target.value)} placeholder={labelFor("motherName")} className={inputClassName()} />
-              <input value={values.motherPhone} onChange={(e) => updateValue("motherPhone", e.target.value)} placeholder={labelFor("motherPhone")} className={inputClassName()} />
-              <input value={values.motherEmail} onChange={(e) => updateValue("motherEmail", e.target.value)} placeholder={labelFor("motherEmail")} className={inputClassName()} />
+              <input value={values.motherPhone} onChange={(e) => updateValue("motherPhone", e.target.value)} placeholder={`${labelFor("motherPhone")}${values.primaryParent === "MOTHER" ? " *" : ""}`} className={inputClassName()} />
+              <input value={values.motherEmail} onChange={(e) => updateValue("motherEmail", e.target.value)} placeholder={`${labelFor("motherEmail")}${values.primaryParent === "MOTHER" ? " *" : ""}`} className={inputClassName()} />
               <input value={values.motherQualification} onChange={(e) => updateValue("motherQualification", e.target.value)} placeholder={labelFor("motherQualification")} className={inputClassName()} />
               <input value={values.motherOccupation} onChange={(e) => updateValue("motherOccupation", e.target.value)} placeholder={labelFor("motherOccupation")} className={inputClassName()} />
             </div>
@@ -221,8 +257,8 @@ export function AdmissionForm({ formConfig, programs }: AdmissionFormProps) {
           <p className="text-sm font-semibold uppercase tracking-[0.22em] text-gold">Guardian Details (if applicable)</p>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             <input value={values.guardianName} onChange={(e) => updateValue("guardianName", e.target.value)} placeholder={labelFor("guardianName")} className={inputClassName()} />
-            <input value={values.guardianPhone} onChange={(e) => updateValue("guardianPhone", e.target.value)} placeholder={labelFor("guardianPhone")} className={inputClassName()} />
-            <input value={values.guardianEmail} onChange={(e) => updateValue("guardianEmail", e.target.value)} placeholder={labelFor("guardianEmail")} className={inputClassName()} />
+            <input value={values.guardianPhone} onChange={(e) => updateValue("guardianPhone", e.target.value)} placeholder={`${labelFor("guardianPhone")}${values.primaryParent === "GUARDIAN" ? " *" : ""}`} className={inputClassName()} />
+            <input value={values.guardianEmail} onChange={(e) => updateValue("guardianEmail", e.target.value)} placeholder={`${labelFor("guardianEmail")}${values.primaryParent === "GUARDIAN" ? " *" : ""}`} className={inputClassName()} />
             <input value={values.guardianQualification} onChange={(e) => updateValue("guardianQualification", e.target.value)} placeholder={labelFor("guardianQualification")} className={inputClassName()} />
             <input value={values.guardianOccupation} onChange={(e) => updateValue("guardianOccupation", e.target.value)} placeholder={labelFor("guardianOccupation")} className={`${inputClassName()} md:col-span-2`} />
           </div>
@@ -236,13 +272,13 @@ export function AdmissionForm({ formConfig, programs }: AdmissionFormProps) {
               <option value="MOTHER">Mother is the primary parent</option>
               <option value="GUARDIAN">Guardian is the primary parent</option>
             </select>
-            <input value={values.addressLine1} onChange={(e) => updateValue("addressLine1", e.target.value)} placeholder={labelFor("addressLine1")} className={inputClassName()} />
+            <input required value={values.addressLine1} onChange={(e) => updateValue("addressLine1", e.target.value)} placeholder={`${labelFor("addressLine1")} *`} className={inputClassName()} />
             <input value={values.addressLine2} onChange={(e) => updateValue("addressLine2", e.target.value)} placeholder={labelFor("addressLine2")} className={inputClassName()} />
             <input value={values.city} onChange={(e) => updateValue("city", e.target.value)} placeholder={labelFor("city")} className={inputClassName()} />
             <input value={values.state} onChange={(e) => updateValue("state", e.target.value)} placeholder={labelFor("state")} className={inputClassName()} />
             <input value={values.postalCode} onChange={(e) => updateValue("postalCode", e.target.value)} placeholder={labelFor("postalCode")} className={inputClassName()} />
-            <input value={values.emergencyContactName} onChange={(e) => updateValue("emergencyContactName", e.target.value)} placeholder={labelFor("emergencyContactName")} className={inputClassName()} />
-            <input value={values.emergencyContactPhone} onChange={(e) => updateValue("emergencyContactPhone", e.target.value)} placeholder={labelFor("emergencyContactPhone")} className={inputClassName()} />
+            <input required value={values.emergencyContactName} onChange={(e) => updateValue("emergencyContactName", e.target.value)} placeholder={`${labelFor("emergencyContactName")} *`} className={inputClassName()} />
+            <input required value={values.emergencyContactPhone} onChange={(e) => updateValue("emergencyContactPhone", e.target.value)} placeholder={`${labelFor("emergencyContactPhone")} *`} className={inputClassName()} />
             <input value={values.emergencyRelationship} onChange={(e) => updateValue("emergencyRelationship", e.target.value)} placeholder={labelFor("emergencyRelationship")} className={inputClassName()} />
           </div>
         </section>
@@ -272,7 +308,9 @@ export function AdmissionForm({ formConfig, programs }: AdmissionFormProps) {
 
               return (
                 <label key={document.key} className="rounded-[1.2rem] bg-white p-4 shadow-card">
-                  <span className="block text-sm font-semibold text-navy">{document.label}</span>
+                  <span className="block text-sm font-semibold text-navy">
+                    {document.label} {document.required ? <span className="text-red-600">*</span> : null}
+                  </span>
                   <span className="mt-1 block text-xs text-navy/55">{document.required ? "Required" : "Optional"}</span>
                   <input
                     type="file"
@@ -287,7 +325,7 @@ export function AdmissionForm({ formConfig, programs }: AdmissionFormProps) {
       </div>
 
       <div className="mt-6 flex flex-col gap-3 md:flex-row md:items-center">
-        <button className="rounded-full bg-navy px-6 py-3 text-sm font-semibold text-white">
+        <button disabled={!canSubmit} className="rounded-full bg-navy px-6 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-55">
           {status === "loading" ? "Submitting..." : "Submit admission"}
         </button>
         {message ? (

@@ -22,6 +22,16 @@ function cleanText(value: string | null | undefined) {
   return trimmed ? trimmed : undefined;
 }
 
+function formatNoteLines(value: string | null | undefined) {
+  const lines = value
+    ?.replace(/\r\n/g, "\n")
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  return lines?.length ? lines.map((line) => `- ${line}`).join("\n") : undefined;
+}
+
 function calculateAgeFromDob(dob: Date, referenceDate = new Date()) {
   let years = referenceDate.getFullYear() - dob.getFullYear();
   let months = referenceDate.getMonth() - dob.getMonth();
@@ -158,7 +168,7 @@ export async function getAdmissionDocumentBundle(admissionId: string): Promise<A
   pushIfPresent(structuredNotes, "Preferred Joining Month", operationalProfile?.preferredStartMonth);
   pushIfPresent(structuredNotes, "Visit Status", operationalProfile?.schoolVisitStatus);
   pushIfPresent(structuredNotes, "Previous School", childProfile?.previousSchool);
-  pushIfPresent(structuredNotes, "Special Notes", admission.notes);
+  pushIfPresent(structuredNotes, "Special Notes", formatNoteLines(admission.notes));
 
   const statusLabelMap: Record<string, string> = {
     NEW: "Application Submitted",
@@ -193,7 +203,7 @@ export async function getAdmissionDocumentBundle(admissionId: string): Promise<A
       ["Visit Status", cleanText(operationalProfile?.schoolVisitStatus) ?? "Not recorded"],
       ["Medical Notes", cleanText(childProfile?.medicalNotes) ?? "None recorded"],
       ["Allergies", cleanText(childProfile?.allergies) ?? "None recorded"],
-      ["Special Notes", cleanText(admission.notes) ?? "None recorded"],
+      ["Special Notes", formatNoteLines(admission.notes) ?? "None recorded"],
     ],
     submittedDocuments: admission.documents.map((document) => documentTypeLabelMap[document.documentType]),
     declaration:

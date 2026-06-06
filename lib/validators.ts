@@ -29,27 +29,56 @@ export const admissionSchema = z.object({
   fatherOccupation: z.string().optional().or(z.literal("")),
   motherOccupation: z.string().optional().or(z.literal("")),
   guardianOccupation: z.string().optional().or(z.literal("")),
-  childAge: z.string().optional().or(z.literal("")),
-  childGender: z.string().optional().or(z.literal("")),
+  childAge: z.string().min(1, "Child age is required."),
+  childGender: z.string().min(1, "Child gender is required."),
   childBloodGroup: z.string().optional().or(z.literal("")),
   childAadhaar: z.string().optional().or(z.literal("")),
   preferredStartMonth: z.string().optional().or(z.literal("")),
   schoolVisitStatus: z.string().optional().or(z.literal("")),
   previousSchool: z.string().optional().or(z.literal("")),
   previousGrade: z.string().optional().or(z.literal("")),
-  addressLine1: z.string().optional().or(z.literal("")),
+  addressLine1: z.string().min(3, "Address is required."),
   addressLine2: z.string().optional().or(z.literal("")),
   city: z.string().optional().or(z.literal("")),
   state: z.string().optional().or(z.literal("")),
   postalCode: z.string().optional().or(z.literal("")),
-  emergencyContactName: z.string().optional().or(z.literal("")),
-  emergencyContactPhone: z.string().optional().or(z.literal("")),
+  emergencyContactName: z.string().min(2, "Emergency contact name is required."),
+  emergencyContactPhone: z.string().min(10, "Emergency contact phone is required."),
   emergencyRelationship: z.string().optional().or(z.literal("")),
   medicalNotes: z.string().max(2000).optional().or(z.literal("")),
   allergies: z.string().max(1000).optional().or(z.literal("")),
   parentExpectations: z.string().max(1000).optional().or(z.literal("")),
   notes: z.string().max(2000).optional(),
-  programSlug: z.string().optional(),
+  programSlug: z.string().min(1, "Selected program is required."),
+}).superRefine((value, ctx) => {
+  const parentPhone =
+    value.primaryParent === "MOTHER"
+      ? value.motherPhone
+      : value.primaryParent === "GUARDIAN"
+        ? value.guardianPhone
+        : value.fatherPhone;
+  const parentEmail =
+    value.primaryParent === "MOTHER"
+      ? value.motherEmail
+      : value.primaryParent === "GUARDIAN"
+        ? value.guardianEmail
+        : value.fatherEmail;
+
+  if (!parentPhone || parentPhone.length < 10) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: [value.primaryParent === "MOTHER" ? "motherPhone" : value.primaryParent === "GUARDIAN" ? "guardianPhone" : "fatherPhone"],
+      message: "Primary parent phone is required.",
+    });
+  }
+
+  if (!parentEmail) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: [value.primaryParent === "MOTHER" ? "motherEmail" : value.primaryParent === "GUARDIAN" ? "guardianEmail" : "fatherEmail"],
+      message: "Primary parent email is required.",
+    });
+  }
 });
 
 export const contactSchema = z.object({

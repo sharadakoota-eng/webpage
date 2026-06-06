@@ -3,6 +3,7 @@ import { RoleType } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requirePortalRole } from "@/lib/erp-auth";
+import { deleteStudentRecordCascade } from "@/lib/student-record-cleanup";
 
 const updateStudentSchema = z.object({
   action: z.enum(["assign"]),
@@ -78,36 +79,23 @@ export async function DELETE(_request: Request, context: { params: Promise<{ stu
   try {
     const { studentId } = await context.params;
 
-    await prisma.$transaction(async (tx) => {
-      const invoices = await tx.invoice.findMany({
-        where: { studentId },
-        select: { id: true },
-      });
-
-      const invoiceIds = invoices.map((invoice) => invoice.id);
-
-      await tx.admission.updateMany({
-        where: { studentId },
-        data: { studentId: null },
-      });
-
-      await tx.parentStudentMap.deleteMany({ where: { studentId } });
-      await tx.homeworkUpdateStudent.deleteMany({ where: { studentId } });
-      await tx.attendance.deleteMany({ where: { studentId } });
-      await tx.studentObservation.deleteMany({ where: { studentId } });
-      await tx.leaveRequest.deleteMany({ where: { studentId } });
-      await tx.enrollment.deleteMany({ where: { studentId } });
-      await tx.receipt.deleteMany({ where: { studentId } });
-
-      if (invoiceIds.length > 0) {
-        await tx.payment.deleteMany({
-          where: { invoiceId: { in: invoiceIds } },
+    await prisma.$transaction(
+      async (tx) => {
+        await deleteStudentRecordCascade(tx, studentId);
+        await tx.auditLog.create({
+          data: {
+            userId: session.sub,
+            action: "STUDENT_DELETED",
+            entityType: "Student",
+            entityId: studentId,
+            details: {
+              removedLinkedAdmissionAndOrphanParents: true,
+            },
+          },
         });
-      }
-
-      await tx.invoice.deleteMany({ where: { studentId } });
-      await tx.student.delete({ where: { id: studentId } });
-    });
+      },
+      { timeout: 20000 },
+    );
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -65,17 +65,18 @@ export default async function AdminAdmissionsPage() {
       acc[stage] += 1;
       return acc;
     },
-    { SUBMITTED: 0, UNDER_REVIEW: 0, APPROVED: 0, REJECTED: 0, ENROLLED: 0 } satisfies Record<keyof typeof admissionPipelineStageLabelMap, number>,
+    { SUBMITTED: 0, UNDER_REVIEW: 0, APPROVED: 0, REJECTED: 0, CANCELLED: 0, ENROLLED: 0 } satisfies Record<keyof typeof admissionPipelineStageLabelMap, number>,
   );
 
   return (
     <div className="space-y-8">
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
         {[
           { label: "Submitted", value: pipelineCounts.SUBMITTED.toString() },
           { label: "Under review", value: pipelineCounts.UNDER_REVIEW.toString() },
           { label: "Approved", value: pipelineCounts.APPROVED.toString() },
           { label: "Rejected", value: pipelineCounts.REJECTED.toString() },
+          { label: "Cancelled", value: pipelineCounts.CANCELLED.toString() },
           { label: "Enrolled", value: pipelineCounts.ENROLLED.toString() },
         ].map((stat) => (
           <div key={stat.label} className="rounded-[1.75rem] bg-white p-6 shadow-card">

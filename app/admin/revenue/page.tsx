@@ -29,6 +29,11 @@ export default async function AdminRevenuePage() {
       },
     }),
     prisma.invoice.findMany({
+      where: {
+        status: {
+          not: InvoiceStatus.CANCELLED,
+        },
+      },
       include: {
         student: {
           include: {
@@ -85,7 +90,7 @@ export default async function AdminRevenuePage() {
           })
           .join(" ")
       : "50,18";
-  const pendingInvoices = invoices.filter((invoice) => invoice.status !== InvoiceStatus.PAID);
+  const pendingInvoices = invoices.filter((invoice) => invoice.status !== InvoiceStatus.PAID && invoice.status !== InvoiceStatus.CANCELLED);
   const dueByProgram = programs.map((program) => {
     const programInvoices = invoices.filter((invoice) => invoice.student.enrollments[0]?.programId === program.id);
     const programPaid = payments

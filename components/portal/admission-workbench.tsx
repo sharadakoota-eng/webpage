@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { AdmissionStatus, ApplicationDocumentStatus, DocumentType, Prisma } from "@prisma/client";
 import { DocumentDownloadButton } from "@/components/portal/document-download-button";
@@ -231,6 +231,7 @@ function asRecord<T>(value: Prisma.JsonValue | null | undefined) {
 
 function stageTone(stage: AdmissionPipelineStage) {
   if (stage === "ENROLLED") return "bg-emerald-50 text-emerald-700";
+  if (stage === "CANCELLED") return "bg-slate-100 text-slate-600";
   if (stage === "APPROVED") return "bg-sky-50 text-sky-700";
   if (stage === "REJECTED") return "bg-rose-50 text-rose-700";
   if (stage === "UNDER_REVIEW") return "bg-amber-50 text-amber-700";
@@ -248,6 +249,7 @@ export function AdmissionWorkbench({ admissions, programs, formConfig }: Admissi
   const [search, setSearch] = useState("");
   const [manualAdmission, setManualAdmission] = useState(initialManualAdmission);
   const [manualFiles, setManualFiles] = useState<Record<string, File | null>>({});
+  const [publicFormUrl, setPublicFormUrl] = useState("/admissions");
   const visibleAdmissions = useMemo(() => {
     const term = search.trim().toLowerCase();
     if (!term) return admissions;
@@ -259,7 +261,6 @@ export function AdmissionWorkbench({ admissions, programs, formConfig }: Admissi
     );
   }, [admissions, search]);
 
-  const publicFormUrl = typeof window !== "undefined" ? `${window.location.origin}/admissions` : "/admissions";
   const isLocalhostLink = publicFormUrl.includes("localhost");
   const requiredDocuments = formConfig.requiredDocuments.filter((item) => item.enabled);
   const selectedProgram = manualAdmission.programSlug
@@ -267,13 +268,17 @@ export function AdmissionWorkbench({ admissions, programs, formConfig }: Admissi
     : undefined;
   const stageSummary = useMemo(
     () =>
-      (["SUBMITTED", "UNDER_REVIEW", "APPROVED", "REJECTED", "ENROLLED"] as AdmissionPipelineStage[]).map((stage) => ({
+      (["SUBMITTED", "UNDER_REVIEW", "APPROVED", "REJECTED", "CANCELLED", "ENROLLED"] as AdmissionPipelineStage[]).map((stage) => ({
         stage,
         label: admissionPipelineStageLabelMap[stage],
         count: visibleAdmissions.filter((item) => item.pipelineStage === stage).length,
       })),
     [visibleAdmissions],
   );
+
+  useEffect(() => {
+    setPublicFormUrl(`${window.location.origin}/admissions`);
+  }, []);
 
   async function postAction(payload: Record<string, unknown>, successMessage: string) {
     setStatus("loading");
@@ -699,10 +704,14 @@ export function AdmissionWorkbench({ admissions, programs, formConfig }: Admissi
                     ) : null}
                     <button
                       type="button"
-                      onClick={() => postAction({ action: "deleteAdmission", admissionId: item.id }, "Admission deleted.")}
+                      onClick={() => {
+                        if (window.confirm("Delete this admission? Any linked student, invoices, and orphan parent portal record will also be removed.")) {
+                          void postAction({ action: "deleteAdmission", admissionId: item.id }, "Admission and linked records deleted.");
+                        }
+                      }}
                       className="rounded-full border border-rose-200 px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-rose-700"
                     >
-                      Delete
+                      Cancel
                     </button>
                   </div>
                 </div>

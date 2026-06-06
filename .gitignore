@@ -11,3 +11,4 @@ generated
 tmp_admin_video_frames
 venv
 *.sql
+!prisma/migrations/**/*.sql
